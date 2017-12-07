@@ -25,6 +25,7 @@ def searchVerb(verb):
     if(verb[-3:] == 'ing'):
         mayVerb = verb[:-3]
         result.add(mayVerb)
+        result.add(mayVerb + 'e')
         if(mayVerb[-2] == mayVerb[-1]):
             result.add(mayVerb[:-1])
         if(mayVerb[-1] == 'y'):
@@ -35,6 +36,7 @@ def searchVerb(verb):
             result.add(item[0])
 # 规则动词过去式
     if(verb[-2:] == 'ed'):
+        result.add(verb[:-1])
         mayVerb = verb[:-2]
         result.add(mayVerb)
         if(mayVerb[-1] == mayVerb[-2]):
@@ -54,5 +56,5 @@ def searchVerb(verb):
     return None
 
 
-# while True:
-#    print(searchVerb(input()))
+while True:
+    print(searchVerb(input()))
