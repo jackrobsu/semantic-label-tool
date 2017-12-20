@@ -8,13 +8,17 @@ from utilities import *
 
 class ConjunctionWidget(QMainWindow,QObject):
     textClickSignal = pyqtSignal(QWidget,int,CommonTextEdit)         #鼠标点击响应信号
+    saverButtonSignal = pyqtSignal(QWidget,QWidget,QWidget)
 
-    def __init__(self) :
+    def __init__(self,pWidget) :
         super().__init__()
-         
+        self.pWidget = pWidget
+
         self.splitWindow()                      
         controlContents = self.ContentAdd()  
-        self.gridAdd(controlContents)
+        self.gridAddForLeftWindow(controlContents)
+
+      
 
         self.setCentralWidget(self.splitter)
         self.resize(self.sizeHint())
@@ -49,7 +53,7 @@ class ConjunctionWidget(QMainWindow,QObject):
         
         return controlContents
 
-    def gridAdd(self,controlContents):
+    def gridAddForLeftWindow(self,controlContents):
         '''
             把标签和文本输入框按网格方式布局
         '''
@@ -62,7 +66,29 @@ class ConjunctionWidget(QMainWindow,QObject):
             if tag is None :
                 continue
             self.gridbox.addWidget(tag, row, col)
-        self.leftWindow.setLayout(self.gridbox)
+
+        self.buttonSaver = SaverButton(self,self.saverButtonSignal,self.pWidget,WidgetType.CONJUNCTION)
+        self.buttonSaver.setText("保存")
+        vbox = QVBoxLayout()
+        vbox.addLayout(self.gridbox)
+        # vbox.addStretch(1)
+        vbox.addWidget(self.buttonSaver)
+        self.leftWindow.setLayout(vbox)
 
     def initialize(self):
         self.textClickSignal.connect(textEditSelectionChanged)
+        self.saverButtonSignal.connect(saveLexicon)
+        self.widgetType = WidgetType.CONJUNCTION
+        self.widgetID = UnionID()
+
+    def getContent(self):
+        return self.conjunctionContent.toPlainText()
+
+    def getSubSentences(self):
+        id1 = self.leftSentenceContent.lexiconID
+        id2 = self.rightSentenceContent.lexiconID
+        sen1 = self.leftSentenceContent.toPlainText()
+        sen2 = self.rightSentenceContent.toPlainText()
+        return id1 , id2 , sen1 , sen2
+
+

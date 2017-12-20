@@ -3,6 +3,22 @@ from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QTabWidget
 from PyQt5.QtWidgets import *
+import uuid
+import time
+from enum import Enum
+from singleInstance import *
+import traceback
+
+class WidgetType(Enum):
+    VERB = 0
+    CONJUNCTION = 1
+    PREPOSITION = 2
+    NOUN = 3
+    VARIABLE = 4
+    PRONOUN = 5
+
+class CONSTANT(Enum):
+    noItemID = 0
 
 class CommonTextEdit(QTextEdit):
     __qualname__ = 'CommonTextEdit'
@@ -13,11 +29,105 @@ class CommonTextEdit(QTextEdit):
         self.num = num
         self.dependencyObj = obj
 
+        #与文本框对应的词条ID
+        self.lexiconID = None
+
     def mousePressEvent(self, event):
         self.signal.emit(self.dependencyObj,self.num,self)
 
+    def setLexiconID(self,ID):
+        self.lexiconID = ID
+
+class SignalWithHandleButton(QPushButton):
+    def __init__(self,signal,connectedWidget):
+        super().__init__()
+        self.signal = signal
+        self.connectedWidget = connectedWidget
+
+    def mousePressEvent(self,event):
+        self.signal.emit(self.connectedWidget)
+
+class SaverButton(QPushButton):
+    '''
+        obj: 父对话框对象,即该Button所属的上层框
+        signal: 待发送的信号
+        pWidget：最外层的框
+        widgetType：信号连接的框的类型
+    '''
+    def __init__(self,obj,signal,pWidget,widgetType):
+        super().__init__()
+        self.dependencyObj = obj
+        self.signal = signal
+        self.pWidget = pWidget
+        self.widgetType = widgetType
+        
+
+    def mousePressEvent(self,event):
+        connectedWidget = self.pWidget.listWidgetDictByWidgetType.get(self.widgetType) 
+        tabwidget = self.pWidget.tabWidgetDictByWidgetType.get(self.widgetType)
+        
+        if connectedWidget is None or tabwidget is None :
+            return
+        connectedWidget = getattr(self.pWidget,connectedWidget)
+        tabwidget = getattr(self.pWidget,tabwidget)
+        if connectedWidget is None or tabwidget is None :
+            return        
+        connectedWidget = connectedWidget.listWindow
+        self.signal.emit(self.dependencyObj,connectedWidget,tabwidget.tabWindow)
+
+
+class CommonListWidgetItem(QListWidgetItem) :
+    '''
+        用来显示已经保存的短语或词等
+        itemID:是与词条对应的ID，用来查找相应的词条以获取更多信息
+    '''
+    def __init__(self,itemID):
+        super().__init__()
+        self.itemID = itemID
+
+class CommonListWidget(QListWidget):
+    '''
+        pWidget : 该Widget所属的Widget
+    '''
+    def __init__(self,pWidget,widget):
+        '''
+            widget:对应的TabWidget在pWidget中的属性名，如verbListwidget对应verbTab
+        '''
+        super().__init__()
+        self.pWidget = pWidget
+        self.widget = widget
+
+    def mouseDoubleClickEvent(self,event):
+        # self.signal.emit()
+        items = self.selectedItems()
+        if items :
+            item = items[0]
+            tabwidget = getattr(self.pWidget,self.widget)   #根据属性名获得tabwidget
+            if tabwidget is None :
+                return
+            try:
+                tabwidget = tabwidget.tabWindow           #获得tabwidget中的tab控件，前提是要有tabWindow对象
+                tabshow = None
+                for tabindex in range(tabwidget.count()):
+                    tab = tabwidget.widget(tabindex)
+                    #判断widgetID 与 item的ID是否一致
+                    if tab.widgetID == item.itemID :
+                        tabshow = tab
+                        break
+                if tabshow is None :
+                    return
+                tabwidget.setCurrentWidget(tabshow)
+            except Exception :
+                traceback.print_exc()
+            
+
+
+##############################################################
 
 def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=30,contentHeight=30,contentWidth=100):
+    '''
+        用于给页面添加基本的标签和文本编辑框
+    '''
     # widget = QWidget()
     # hbox = QHBoxLayout()
     tag = QLabel()
@@ -39,6 +149,23 @@ def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=
     controlcontents.append(content)
     return tag, content
 
+def addWordsToSelectedTextEdit(text,itemID):
+    '''
+        用于把选中的一些词送入被选中的文本编辑框中，一般通过“确定”按钮触发
+    '''
+    messagecontainer = MessageContainer()
+    selectedRoleContent = messagecontainer.getMessage("selectedRoleContent")
+    if selectedRoleContent is not None :
+        selectedRoleContent.setText(text)
+        selectedRoleContent.setLexiconID(itemID)
+
+        lexicon = Lexicon(UnionID(),WTYPE.CONSTANT,text)
+        setLexicon(WTYPE.CONSTANT,lexicon)
+        
+        print("selected itemID",itemID)
+        return True
+    return False
+
 def textEditSelectionChanged(widgetObj,num, textobj):
     if not hasattr(widgetObj,"allLabels") :
         return
@@ -47,5 +174,149 @@ def textEditSelectionChanged(widgetObj,num, textobj):
         if i == num:
             obj.setStyleSheet('color:green;')
             widgetObj.selectedRoleContent = textobj
+            messagecontainer = MessageContainer()
+            messagecontainer.setMessage("selectedRoleContent",textobj)
             continue
         obj.setStyleSheet('color:black')
+
+def TextAddThroughWidget(widget) :
+    if widget is None :
+        return
+    item = widget.currentItem()
+    if item is None :
+        return
+    addWordsToSelectedTextEdit(item.text(),item.itemID)
+
+
+def saveLexicon(obj,showWidget,tabwidget) :
+    '''
+        对应界面中的“保存”词条的按钮，词条ID与Tab ID需要一致,是通过signal触发的
+        showWidget:对应要展示相应词条的那个Widget
+    '''
+    content = obj.getContent()
+    lexicon = getLexicon(obj.widgetType,obj.widgetID)
+
+    typedict = {
+        WidgetType.VERB:WTYPE.VERB,
+        WidgetType.CONJUNCTION:WTYPE.CONJUNCTION,
+        WidgetType.NOUN:WTYPE.NOUN
+    }
+
+    if lexicon is None :
+        lexicon = Lexicon(obj.widgetID,typedict[obj.widgetType],content)
+    else:
+        lexicon.mainWord = content
+    
+    if obj.widgetType == WidgetType.CONJUNCTION :
+        #填补连词的成分
+        id1 , id2 , subsen1 , subsen2 = obj.getSubSentences()
+        lexicon.formerSentence = subsen1
+        lexicon.latterSentence = subsen2
+        lexicon.formerSentenceID = id1
+        lexicon.latterSentenceID = id2
+        print("subsen1 {} , subsen2 {}".format(subsen1,subsen2))
+    elif obj.widgetType == WidgetType.VERB :
+        roles = obj.getRoles()
+        lexicon.roles = roles
+
+    #添加到列表框中
+    addItemToListWidget(showWidget,lexicon)
+    #更新词条
+    setLexicon(obj.widgetType,lexicon)
+    
+    # showWidget.addItem(content)
+
+    # verb = Verbs()
+    # verb.PrintVerbs()
+
+    tabwidget.setTabText(tabwidget.currentIndex(),content)
+
+
+def UnionID():
+    uid = str(uuid.uuid1())
+    return str(int(time.time())) + uid
+
+def getLexicon(widgetType,widgetID) :
+    '''
+        获取词条
+    '''
+    if widgetType == WidgetType.VERB :
+        verb = Verbs()
+        lexicon = verb.getItem(widgetID)
+        return lexicon
+
+    if widgetType == WidgetType.VERB :
+        conjunction = Conjunctions()        
+        lexicon = conjunction.getItem(widgetID)
+        return lexicon
+    
+def setLexicon(widgetType,content):
+    '''
+        添加词条，根据不同的WidgetType类型往不同的词条对象中添加
+    '''
+    if widgetType == WidgetType.VERB :
+        verb = Verbs()
+        verb.setItem(content)
+    elif widgetType == WidgetType.CONJUNCTION :
+        conjunction = Conjunctions()
+        conjunction.setItem(content)
+        conjunction.PrintConjunctions()
+    elif widgetType == WTYPE.CONSTANT :
+        constant = Constants()
+        constant.setItem(content)
+
+
+def addItemToListWidget(ListWidget,lexicon):
+    '''
+        往列表框中添加元素，添加时会根据元素ID检查是否已经存在，如果存在，则直接替换
+    '''
+    def search():
+        for i in range(ListWidget.count()) :
+            item = ListWidget.item(i)
+            if item.itemID == lexicon.wordID :
+                return item
+        return None
+    
+
+    item = search()
+    if item is not None :
+        item.setText(lexicon.getFormatString())
+    else:
+        item = CommonListWidgetItem(lexicon.wordID)
+        item.setText(lexicon.getFormatString())
+        ListWidget.addItem(item)
+
+def tabAdd(tabWidget):
+    '''
+        添加标签页,参数tabWidget一般是主页面，即它的tabWindow对象才是QTabWidget
+    '''
+    from verbWidget import VerbWidget
+    from conjunctionWidget import ConjunctionWidget
+    print("add")
+    if tabWidget.widgetType == WidgetType.VERB :
+        tabWidget.tabWindow.addTab(VerbWidget(tabWidget.pWidget),tabWidget.defaultTab)
+    elif tabWidget.widgetType == WidgetType.CONJUNCTION :
+        tabWidget.tabWindow.addTab(ConjunctionWidget(tabWidget.pWidget),tabWidget.defaultTab)
+        
+    tabWidget.tabWindow.setCurrentIndex(tabWidget.tabWindow.count()-1)
+
+
+def getButton(text):
+    button = QPushButton()
+    button.setText(text)
+    return button
+
+
+def showContentInTableWidget(tableWidget,contents,row=0,col=0,isClear=True) :
+    if isClear :
+        tableWidget.clear()
+    for word in contents :
+        tableWidget.setItem(row,col,QTableWidgetItem(word+" "))
+        col += 1
+        if col >= tableWidget.columnCount() :
+            row += 1
+            col = 0
+        if row >= tableWidget.rowCount() :
+            tableWidget.insertRow(row)
+    tableWidget.resizeRowsToContents()            
+    tableWidget.resizeColumnsToContents()

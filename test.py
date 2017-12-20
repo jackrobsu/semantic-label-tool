@@ -5,9 +5,13 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import QMainWindow , QApplication , QPushButton , QTabWidget 
 from PyQt5.QtWidgets import *
 from verbWidget import VerbWidget
-from conjunctionWidget import ConjunctionWidget
-
-
+from conjunctionWidget import ConjunctionWidget 
+from singleInstance import *
+import traceback
+from utilities import *
+from basicTabWidget import *
+from comListWidget import *
+from nounWidget import NounWidget
 '''
     加载ui文件
 '''
@@ -39,7 +43,7 @@ class MyApp(QMainWindow):
         # self.sentenceshow.columnWidth(defaultLength)
         # self.sentenceshow.setItem(0,0,QTableWidgetItem("dgaghrehrehreherherheeheherher"))
 
-        self.showSentence("You can go to play with them.")
+        self.showSentence("Tim bought Eric a gecko, because he followed him.")
 
         self.sentenceshow.resizeRowsToContents()
         self.sentenceshow.resizeColumnsToContents()
@@ -58,29 +62,47 @@ class MyApp(QMainWindow):
 
         #显示已生成的短语的Widget
         self.typeGroupssplitter = QSplitter(Qt.Horizontal)
-        self.verbwidget = QScrollArea()
-        self.conjunctionwidget = QScrollArea()
-        self.prepositionwidget = QScrollArea()
-        self.nounwidget = QScrollArea()
-        self.typeGroupssplitter.addWidget(self.verbwidget)
+        self.verbListwidget = ComListWidget(self,"verbTab",WidgetType.VERB)                              #CommonListWidget(self,"verbTab")
+        self.conjunctionwidget = ComListWidget(self,"conjunctionTab",WidgetType.CONJUNCTION)
+        self.prepositionwidget = ComListWidget(self,"prepositionTab",WidgetType.PREPOSITION)
+        self.nounwidget = ComListWidget(self,"nounTab",WidgetType.NOUN)
+        self.pronounwidget = ComListWidget(self,"pronounTab",WidgetType.PRONOUN)
+        
+        self.typeGroupssplitter.addWidget(self.verbListwidget)
         self.typeGroupssplitter.addWidget(self.conjunctionwidget)
         self.typeGroupssplitter.addWidget(self.prepositionwidget)
         self.typeGroupssplitter.addWidget(self.nounwidget)
+        self.typeGroupssplitter.addWidget(self.pronounwidget)
         
+        #用来连接列表框和tab框
+        self.listWidgetDictByWidgetType = {
+            WidgetType.VERB:"verbListwidget",
+            WidgetType.CONJUNCTION:"conjunctionwidget",
+            WidgetType.NOUN:"nounwidget"
+            }
         # self.typeGroups.addItem("garh")
 
         #用于设置动词、连词、介词、名词等相应内容的Widget
         self.contentTabs = QTabWidget()
         
-        self.verbTab = VerbWidget()
-        self.conjunctionTab = ConjunctionWidget()
+        self.verbTab = VerbTabWidget(self)
+        self.conjunctionTab = ConjunctionTabWidget(self)
         self.prepositionTab = QWidget()
-        self.nounTab = QWidget()
-        self.contentTabs.addTab(self.verbTab,"Verb")
-        self.contentTabs.addTab(self.conjunctionTab,"conjunction")
-        self.contentTabs.addTab(self.prepositionTab,"preposition")
-        self.contentTabs.addTab(self.nounTab,"noun")
+        self.nounTab = BasicTabWidget(self,WidgetType.NOUN)
+        self.pronounTab = QWidget()
+        self.contentTabs.addTab(self.nounTab,"名词")
+        self.contentTabs.addTab(self.prepositionTab,"介词")        
+        self.contentTabs.addTab(self.verbTab,"动词")
+        self.contentTabs.addTab(self.conjunctionTab,"连词")
+        self.contentTabs.addTab(self.pronounTab,"代词")
         
+
+        self.tabWidgetDictByWidgetType = {
+            WidgetType.VERB:"verbTab",
+            WidgetType.CONJUNCTION:"conjunctionTab",
+            WidgetType.NOUN:"nounTab"
+            }
+
         self.contentTabs.resize(self.MainWindowWidth,400)
 
         self.verticalSplitter = QSplitter(Qt.Vertical)
@@ -149,23 +171,30 @@ class MyApp(QMainWindow):
         setColumns(items)
             
     def showSentence(self,sentence):
-        row = 0
-        col = 0
-        for word in sentence.split(" "):
-            self.sentenceshow.setItem(row,col,QTableWidgetItem(word+" "))
-            col += 1
-            if col >= self.sentenceshow.columnCount() :
-                row += 1
-                col = 0
-            if row >= self.sentenceshow.rowCount() :
-                self.sentenceshow.insertRow(row)
+        # row = 0
+        # col = 0
+        # for word in sentence.split(" "):
+            # self.sentenceshow.setItem(row,col,QTableWidgetItem(word+" "))
+            # col += 1
+            # if col >= self.sentenceshow.columnCount() :
+            #     row += 1
+            #     col = 0
+            # if row >= self.sentenceshow.rowCount() :
+            #     self.sentenceshow.insertRow(row)
+        showContentInTableWidget(self.sentenceshow,sentence.split(" "))
         
     def addSomeWords(self):
         items = self.sentenceshow.selectedItems()
         items = sorted(items,key=lambda x : ( x.row(),x.column() ))
         s = "_".join([ item.text().strip() for item in items ])
-        if self.verbTab.selectedRoleContent is not None :
-            self.verbTab.selectedRoleContent.setText(s)
+        s = s.replace(",","").replace(".","").replace("?","")
+        isSelected = addWordsToSelectedTextEdit(s,CONSTANT.noItemID)
+        if isSelected :
+            self.sentenceshow.clearSelection()
+        # messagecontainer = MessageContainer()
+        # selectedRoleContent = messagecontainer.getMessage("selectedRoleContent")
+        # if selectedRoleContent is not None :
+        #     selectedRoleContent.setText(s)
         
 
 
@@ -174,5 +203,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     window = MyApp()
-
-    sys.exit(app.exec_())
+    try:
+        sys.exit(app.exec_())
+    except Exception :
+        traceback.print_exc()

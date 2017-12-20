@@ -1,6 +1,8 @@
 #-*- coding:utf-8 -*-
 import os
 import re
+import xml.etree.cElementTree as ET
+from xml.etree.ElementTree import Element, SubElement, ElementTree
 
 
 def searchVerb(verb):
@@ -55,6 +57,37 @@ def searchVerb(verb):
         return Realresult
     return None
 
+def extractXML(verb):
+    tree = ET.ElementTree(file='./frames/' + verb + '.xml')
+    treeRoot = tree.getroot()
+    verbItem = []
+    rst = []
+    for roleset in treeRoot.iterfind('predicate/roleset'):
+        verbItem.append(roleset)    
+    for roleset in verbItem:
+        word = {}
+        searchRst = ''
+        rolesetAttr = roleset.attrib
+        labelTitle = re.findall(r'.*\.(.*)', rolesetAttr['id'])
+        word['word'] = rolesetAttr['id']
+        searchRst += rolesetAttr['id'] + ' ' + rolesetAttr['name'] + '\n'
+        word['description'] = rolesetAttr['name']
+        word['roles'] = []
+        for role in roleset.iterfind('roles/role'):
+            r = {}
+            roleAttr = role.attrib
+            r['num'] = roleAttr['n']
+            r['descr'] = roleAttr['descr']
+            r['role'] = roleAttr['f']
+            searchRst += '    ' + roleAttr['n'] + ' ' + \
+                roleAttr['f'] + ' ' + roleAttr['descr'] + '\n'
+            searchRst += '\n'
+            word['roles'].append(r)
+            # print(searchRst)
+            # rst.append(searchRst)
+        rst.append(word)
 
-while True:
-    print(searchVerb(input()))
+    return rst
+
+# while True:
+#     print(searchVerb(input()))
