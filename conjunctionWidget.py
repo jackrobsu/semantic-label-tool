@@ -35,7 +35,7 @@ class ConjunctionWidget(QMainWindow,QObject):
         self.splitter.addWidget(self.leftWindow)
         self.splitter.addWidget(self.rightWindow)
         self.splitter.setStretchFactor(0,5)
-        self.splitter.setStretchFactor(1,2)
+        self.splitter.setStretchFactor(1,4)
 
     def ContentAdd(self):
         '''
@@ -44,10 +44,11 @@ class ConjunctionWidget(QMainWindow,QObject):
         controlContents = []
         self.conjunctionLabel , self.conjunctionContent = addContent(self,"连词",controlcontents=controlContents,num=0,signal=self.textClickSignal)
         controlContents.append(None)
-        controlContents.append(None)        
-        self.leftSentenceLabel , self.leftSentenceContent = addContent(self,"子句1",controlcontents=controlContents,num=1,signal=self.textClickSignal)
+        controlContents.append(None)     
+        controlContents.append(None)
+        self.leftSentenceLabel , self.leftSentenceContent = addContent(self,"子句1",controlcontents=controlContents,num=1,signal=self.textClickSignal,checkBoxHidden=False)
         self.leftSentenceRoleLabel , self.leftSentenceRoleContent = addContent(self,"语义角色",controlcontents=controlContents,num=2,signal=self.textClickSignal,tagWidth=50)
-        self.rightSentenceLabel , self.rightSentenceContent = addContent(self,"子句2",controlcontents=controlContents,num=3,signal=self.textClickSignal)
+        self.rightSentenceLabel , self.rightSentenceContent = addContent(self,"子句2",controlcontents=controlContents,num=3,signal=self.textClickSignal,checkBoxHidden=False)
         self.rightSentenceRoleLabel , self.rightSentenceRoleContent = addContent(self,"语义角色",controlcontents=controlContents,num=4,signal=self.textClickSignal,tagWidth=50)
         self.allLabels = ['conjunctionLabel', 'leftSentenceLabel', 'leftSentenceRoleLabel', 'rightSentenceLabel','rightSentenceRoleLabel']
         
@@ -58,8 +59,8 @@ class ConjunctionWidget(QMainWindow,QObject):
             把标签和文本输入框按网格方式布局
         '''
         self.gridbox = QGridLayout()
-        self.gridbox.setHorizontalSpacing(0)
-        numOfEachRow = 4
+        self.gridbox.setHorizontalSpacing(5)
+        numOfEachRow = 6
         for (i, tag) in enumerate(controlContents):
             row = int(i / numOfEachRow)
             col = i - row * numOfEachRow

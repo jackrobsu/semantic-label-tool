@@ -9,7 +9,7 @@ class BasicWidget(QMainWindow,QObject):
         super(BasicWidget,self).__init__()
         self.pWidget = pWidget
         self.widgetType = widgetType
-    def splitWindow(self):
+    def splitWindow(self,leftwidth=1,rightwidth=1):
         '''
             切分窗口，目前是分成左右两部分
         '''
@@ -18,8 +18,8 @@ class BasicWidget(QMainWindow,QObject):
         self.rightWindow = QWidget()
         self.splitter.addWidget(self.leftWindow)
         self.splitter.addWidget(self.rightWindow)
-        self.splitter.setStretchFactor(0,5)
-        self.splitter.setStretchFactor(1,2)
+        self.splitter.setStretchFactor(0,leftwidth)
+        self.splitter.setStretchFactor(1,rightwidth)
 
     def gridAddForLeftWindow(self,controlContents,numOfEachRow=2):
         gridbox = QGridLayout()

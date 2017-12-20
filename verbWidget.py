@@ -29,7 +29,7 @@ class VerbWidget(QMainWindow,QObject):
         # (self.role2,self.roleContent2) = addContent(self,'role2', controlcontents, 2 , self.textClickSignal,tagWidth=tagWidth,contentWidth=contentWidth)
         # (self.role3,self.roleContent3) = addContent(self,'role3', controlcontents, 3 , self.textClickSignal,tagWidth=tagWidth,contentWidth=contentWidth)
 
-        self.roleNum = 1
+        self.roleNum = 0
         self.allLabels = ['verb']
         
         self.addRoleContent(self.roleNum,self.allLabels,controlcontents)
@@ -44,7 +44,7 @@ class VerbWidget(QMainWindow,QObject):
         self.gridbox = QGridLayout()
         self.gridbox.setHorizontalSpacing(0)
         # print(len(controlcontents))
-        self.AddElementIntoGridBox(controlcontents)
+        self.AddElementIntoGridBox(controlcontents,3)
 
         self.buttonSaver = SaverButton(self,self.saverButtonSignal,self.pWidget,WidgetType.VERB)
         self.buttonSaver.setText("保存")
@@ -190,17 +190,20 @@ class VerbWidget(QMainWindow,QObject):
         existedRoleNum = len(labels)
         for rolenum in roles :
             rolename = "role{}".format(rolenum+existedRoleNum)
-            role , roleContent = addContent(self,"-",controlcontents,rolenum+existedRoleNum,self.textClickSignal,tagWidth=self.tagWidth,contentWidth=self.contentWidth)
+            role , roleContent = addContent(self,"-",controlcontents,rolenum+existedRoleNum,self.textClickSignal,tagWidth=self.tagWidth,contentWidth=self.contentWidth,checkBoxHidden=False)
             setattr(self,rolename,role)
             setattr(self,"roleContent{}".format(rolenum+existedRoleNum),roleContent)
             print("roleContent{}".format(rolenum+existedRoleNum))
             labels.append(rolename)
 
-    def AddElementIntoGridBox(self,controlcontents,numOfEachRow=2,initialRow=0):
+    def AddElementIntoGridBox(self,controlcontents,numOfEachRow=3,initialRow=0):
         for (i, tag) in enumerate(controlcontents):
             row = int(i / numOfEachRow) + initialRow
             col = i - ( row - initialRow ) * numOfEachRow
             self.gridbox.addWidget(tag, row, col)
+
+        self.gridbox.setHorizontalSpacing(5)
+        
 
     def lemmatizationButtonClickEvent(self):
         '''

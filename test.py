@@ -64,15 +64,15 @@ class MyApp(QMainWindow):
         self.typeGroupssplitter = QSplitter(Qt.Horizontal)
         self.verbListwidget = ComListWidget(self,"verbTab",WidgetType.VERB)                              #CommonListWidget(self,"verbTab")
         self.conjunctionwidget = ComListWidget(self,"conjunctionTab",WidgetType.CONJUNCTION)
-        self.prepositionwidget = ComListWidget(self,"prepositionTab",WidgetType.PREPOSITION)
+        # self.prepositionwidget = ComListWidget(self,"prepositionTab",WidgetType.PREPOSITION)
         self.nounwidget = ComListWidget(self,"nounTab",WidgetType.NOUN)
-        self.pronounwidget = ComListWidget(self,"pronounTab",WidgetType.PRONOUN)
+        # self.pronounwidget = ComListWidget(self,"pronounTab",WidgetType.PRONOUN)
         
         self.typeGroupssplitter.addWidget(self.verbListwidget)
         self.typeGroupssplitter.addWidget(self.conjunctionwidget)
-        self.typeGroupssplitter.addWidget(self.prepositionwidget)
+        # self.typeGroupssplitter.addWidget(self.prepositionwidget)
         self.typeGroupssplitter.addWidget(self.nounwidget)
-        self.typeGroupssplitter.addWidget(self.pronounwidget)
+        # self.typeGroupssplitter.addWidget(self.pronounwidget)
         
         #用来连接列表框和tab框
         self.listWidgetDictByWidgetType = {
@@ -90,11 +90,11 @@ class MyApp(QMainWindow):
         self.prepositionTab = QWidget()
         self.nounTab = BasicTabWidget(self,WidgetType.NOUN)
         self.pronounTab = QWidget()
-        self.contentTabs.addTab(self.nounTab,"名词")
-        self.contentTabs.addTab(self.prepositionTab,"介词")        
+        # self.contentTabs.addTab(self.prepositionTab,"介词")        
         self.contentTabs.addTab(self.verbTab,"动词")
         self.contentTabs.addTab(self.conjunctionTab,"连词")
-        self.contentTabs.addTab(self.pronounTab,"代词")
+        self.contentTabs.addTab(self.nounTab,"名词")        
+        # self.contentTabs.addTab(self.pronounTab,"代词")
         
 
         self.tabWidgetDictByWidgetType = {

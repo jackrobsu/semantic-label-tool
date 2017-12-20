@@ -120,11 +120,64 @@ class CommonListWidget(QListWidget):
             except Exception :
                 traceback.print_exc()
             
+class CheckBox(QCheckBox):
+    def __init__(self,textedit):
+        super().__init__()
+        self.textedit = textedit
+        self.clicked.connect(self.ItemClickedEvent)
 
+    def ItemClickedEvent(self,event):
+        if self.checkState() == Qt.Checked :
+            text = self.textedit.toPlainText()
+            if text is None or text == "" :
+                return
+            try:
+                if text.index("?") != 0 :
+                    self.textedit.setText("?"+text)
+            except Exception :
+                self.textedit.setText("?"+text)
+        else:
+            text = self.textedit.toPlainText()
+            if text is None or text == "" :
+                return
+            try:
+                if text.index("?") == 0 :
+                    self.textedit.setText(text[1:])
+            except Exception :
+                pass
+
+class CommonEventHandle :
+    
+    def __init__(self):
+        return
+    
+    # def pronounCheckBoxClickEvent(self):
+    #     if hasattr(self,"gridbox") :
+    #         for row in range(self.gridbox.rowCount()) :
+    #             for col in range(self.gridbox.columnCount()) :
+    #                 item = self.gridbox.itemAtPosition(row,col)
+    #                 if not hasattr(item,"checkState") :
+    #                     print(" It's not a checkbox.")
+    #                     continue
+    #                 if item.isHidden() :
+    #                     print("({},{}) hidden".format(row,col))
+    #                     continue
+    #                 if item.checkState() == Qt.Checked :
+    #                     try:
+    #                         edittext = self.gridbox.itemAtPosition(row,col-1)
+    #                         if not isinstance(edittext,QTextEdit) :
+    #                             print("It's not an textedit.")
+    #                             continue
+    #                         text = edittext.toPlainText()
+    #                         if "?" not in text :
+    #                             edittext.setText("?"+text)
+    #                     except Exception :
+    #                         print("no edittext exists")
+                    
 
 ##############################################################
 
-def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=30,contentHeight=30,contentWidth=100):
+def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=30,contentHeight=30,contentWidth=100,needCheckBox=False,checkBoxHidden=True):
     '''
         用于给页面添加基本的标签和文本编辑框
     '''
@@ -145,9 +198,15 @@ def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=
     # hbox.setStretch(1, 5)
     # hbox.setContentsMargins(1, 1, 1, 1)
     # widget.setLayout(hbox)
+    checkbox = CheckBox(content)
+    checkbox.setHidden(checkBoxHidden)
     controlcontents.append(tag)
     controlcontents.append(content)
-    return tag, content
+    controlcontents.append(checkbox)
+    if needCheckBox :
+        return tag, content , checkbox
+    else:
+        return tag, content         
 
 def addWordsToSelectedTextEdit(text,itemID):
     '''
