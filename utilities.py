@@ -193,6 +193,7 @@ def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=
     tag.setMaximumWidth(tagWidth)
     content.setMaximumHeight(contentHeight)
     content.setMaximumWidth(contentWidth)
+    
     # hbox.addWidget(tag)
     # hbox.addWidget(content)
     # hbox.setStretch(1, 5)
@@ -360,9 +361,17 @@ def tabAdd(tabWidget):
     tabWidget.tabWindow.setCurrentIndex(tabWidget.tabWindow.count()-1)
 
 
-def getButton(text):
+def getButton(text,width=None,height=None,event=None):
     button = QPushButton()
     button.setText(text)
+    if width is not None :
+        button.setFixedWidth(width)
+    if height is not None :
+        button.setFixedHeight(height)
+    
+        
+    if event is not None :
+        button.clicked.connect(event)
     return button
 
 

@@ -10,7 +10,7 @@ class TreeItem(QTreeWidgetItem):
     
 class Tree(QTreeWidget):  
   
-    def __init__(self, parent = None , mainWindow=None):  
+    def __init__(self, parent = None , mainWindow=None , windowIndex=0):  
   
         super(Tree, self).__init__(parent)  
         self.mainWindow = mainWindow
@@ -21,6 +21,7 @@ class Tree(QTreeWidget):
         self.setHeaderLabels(['Verb','Description'])
         self.itemClicked.connect(self.ItemClickedEvent)
         self.itemDoubleClicked.connect(self.ItemDoubleClickedEvent)
+        self.windowIndex = windowIndex
         # self.addTopLevelItem(root)
         # for s in ['foo', 'bar']:  
         #     MyTreeItem(s, self)  
@@ -36,10 +37,12 @@ class Tree(QTreeWidget):
             elif len(item) > 1 :
                 treeitem.setText(0,item[0])
                 treeitem.setText(1,item[1])
-            
-            treeitem.setCheckState(0,Qt.Unchecked)
-            
-
+             
+            if len(item) > 2 and item[2] == True : 
+                treeitem.setCheckState(0,Qt.Checked)
+            else:                    
+                treeitem.setCheckState(0,Qt.Unchecked)
+                
     def addTreeRoots(self,treeRoots,valueDict={}):
         for tr in treeRoots :
             r = QTreeWidgetItem(self)
@@ -47,8 +50,20 @@ class Tree(QTreeWidget):
             r.setExpanded(True)
             self.addTreeWidgetItems(r,valueDict[tr])
             self.addTopLevelItem(r)
+        for col in range(self.columnCount()):
+            self.resizeColumnToContents(col)
         
     def ItemClickedEvent(self,WidgetItem):
+        
+        def Clear(clickedItemIndex,obj):
+            for index in range(obj.topLevelItemCount()) :
+                if index == clickedItemIndex :
+                    continue
+                item = obj.topLevelItem(index)
+                for subItemIndex in range(item.childCount()) :
+                    subItem = item.child(subItemIndex)
+                    subItem.setCheckState(0,Qt.Unchecked)
+
         if WidgetItem is None :
             return
         if WidgetItem.checkState(0) != Qt.Checked :
@@ -57,31 +72,41 @@ class Tree(QTreeWidget):
         clickedItemIndex = self.indexOfTopLevelItem(WidgetItem.parent())
         if clickedItemIndex == -1 :
             return
-        for index in range(self.topLevelItemCount()) :
-            if index == clickedItemIndex :
+        Clear(clickedItemIndex,self)
+        for treeWidget in self.mainWindow.trees :
+            if treeWidget.windowIndex == self.windowIndex :
                 continue
-            item = self.topLevelItem(index)
-            for subItemIndex in range(item.childCount()) :
-                subItem = item.child(subItemIndex)
-                subItem.setCheckState(0,Qt.Unchecked)
+            Clear(-1,treeWidget)
+
             
     def ItemChoiceEvent(self):
         '''
             用来响应语义选择按钮的点击事件
         '''
         roles = []
-        for item in self.ItemIteration() :
+        indexs = []
+        pItem = None
+        for pitem , item , itemIndex in self.ItemIteration() :
             if item.checkState(0) == Qt.Checked :
                 roles.append(item.text(0))
-        if self.mainWindow is not None :
-            self.mainWindow.roleChoiceSingnal.emit(roles)
+                pItem = pitem
+                indexs.append(itemIndex)
+        if self.mainWindow is not None and roles :
+            if pItem is not None :
+                print(pItem.text(0))
+                # roles.append(pItem.text(0))
+                indexs.append(pItem.text(0))
+            else:
+                indexs.append(None)
+            print(indexs)
+            self.mainWindow.roleChoiceSingnal.emit(roles,indexs)
 
     def ItemIteration(self):
         for index in range(self.topLevelItemCount()) :
             item = self.topLevelItem(index)
             for subItemIndex in range(item.childCount()) :
                 subItem = item.child(subItemIndex)
-                yield subItem
+                yield item , subItem , subItemIndex
     
     def ItemDoubleClickedEvent(self,WidgetItem,I):
         if WidgetItem is None :

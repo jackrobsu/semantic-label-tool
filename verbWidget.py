@@ -9,11 +9,12 @@ from search import *
 class VerbWidget(QMainWindow,QObject):
     textClickSignal = pyqtSignal(QWidget, int, CommonTextEdit)
     saverButtonSignal = pyqtSignal(QWidget,QWidget,QWidget)
-    roleChoiceSingnal = pyqtSignal(list)
+    roleChoiceSingnal = pyqtSignal(list,list)
     def __init__(self,pWidget):
         super().__init__()
         self.pWidget = pWidget
 
+        self.initializeVariables()
 
         #==========================================leftWindow========================================
         
@@ -70,10 +71,10 @@ class VerbWidget(QMainWindow,QObject):
 
         self.middleWindow = QWidget()
         self.lemmatizationWidget = []        
-        self.originVerbWidget , self.originVerbLabel , self.originVerbTable = self._AddTableWithLabel("按原形",self.lemmatizationWidget)
-        self.VerbingWidget , self.VerbingLabel , self.VerbingTable = self._AddTableWithLabel("按进行时",self.lemmatizationWidget)
-        self.pastVerbWidget , self.pastVerbLabel , self.pastVerbbTable = self._AddTableWithLabel("按过去时",self.lemmatizationWidget)
-        self.VerbesWidget , self.VerbesLabel , self.VerbesTable = self._AddTableWithLabel("按第三人称",self.lemmatizationWidget)
+        self.originVerbWidget , self.originVerbLabel , self.originVerbTable = self._AddTableWithLabel("原形",self.lemmatizationWidget)
+        # self.VerbingWidget , self.VerbingLabel , self.VerbingTable = self._AddTableWithLabel("按进行时",self.lemmatizationWidget)
+        # self.pastVerbWidget , self.pastVerbLabel , self.pastVerbbTable = self._AddTableWithLabel("按过去时",self.lemmatizationWidget)
+        # self.VerbesWidget , self.VerbesLabel , self.VerbesTable = self._AddTableWithLabel("按第三人称",self.lemmatizationWidget)
         
 
         self.searchButton = getButton("查找")
@@ -81,9 +82,9 @@ class VerbWidget(QMainWindow,QObject):
         
         vws = []
         vws.append(self.originVerbWidget)
-        vws.append(self.VerbingWidget)
-        vws.append(self.pastVerbWidget)
-        vws.append(self.VerbesWidget)
+        # vws.append(self.VerbingWidget)
+        # vws.append(self.pastVerbWidget)
+        # vws.append(self.VerbesWidget)
         vws.append(self.searchButton)
         self.middleWindow.setLayout(self._addWidgetInVBoxLayout(vws))
         middleWindowWidth = self.width() / 4
@@ -94,20 +95,41 @@ class VerbWidget(QMainWindow,QObject):
         self.rightWindow = QWidget(self)
         self.rightWindow.resize(self.width() - leftWindowWidth - middleWindowWidth, self.height())
 
-        self.tree = Tree(self.rightWindow,self)
-        # self.tree.addTreeRoots(["root","berh"],{"root":[("A","a"),("PAG","pag")],"berh":[("b","b")]})
         self.treeItemChoiceButton = getButton("确定")
-        self.treeItemChoiceButton.clicked.connect(self.tree.ItemChoiceEvent)
-        self.rightWindow.setLayout(self._addWidgetInVBoxLayout([self.tree,self.treeItemChoiceButton]))
 
-        
+        for i in range(self.treeWidgetNum) :
+            tree = Tree(self.rightWindow,self,i)
+            self.treeItemChoiceButton.clicked.connect(tree.ItemChoiceEvent)
+            self.trees.append(tree)
+        if self.trees :
+            buttonHeight = self.trees[0].height()
+        else:
+            buttonHeight = 100
+        # self.tree = Tree(self.rightWindow,self)
+        # self.rightTree = Tree(self.rightWindow,self)
+        # self.tree.addTreeRoots(["root","berh"],{"root":[("A","a"),("PAG","pag")],"berh":[("b","b")]})
+        # self.treeItemChoiceButton.clicked.connect(self.tree.ItemChoiceEvent)
+        # self.treeItemChoiceButton.clicked.connect(self.rightTree.ItemChoiceEvent)
+        middlewidget = self._addWidgetInVBoxLayout([self._addWidgetInHBoxLayout(self.trees,True),self.treeItemChoiceButton],True)
+        self.preButton = getButton("上翻",40,buttonHeight,event=self.preButtonClickEvent)
+        self.nextButton = getButton("下翻",40,buttonHeight,event=self.nextButtonClickEvent)
+        self.rightWindow.setLayout(self._addWidgetInHBoxLayout([self.preButton,middlewidget,self.nextButton]))
+
+        self.bigRightWindow = QMainWindow()
+        vsplitter = QSplitter(Qt.Vertical)
+        vsplitter.addWidget(self.middleWindow)
+        vsplitter.addWidget(self.rightWindow)
+        self.bigRightWindow.setCentralWidget(vsplitter)
+
+
         self.hsplitter = QSplitter(Qt.Horizontal)
         self.hsplitter.addWidget(self.leftWindow)
-        self.hsplitter.addWidget(self.middleWindow)
-        self.hsplitter.addWidget(self.rightWindow)
+        # self.hsplitter.addWidget(self.middleWindow)
+        # self.hsplitter.addWidget(self.rightWindow)
+        self.hsplitter.addWidget(self.bigRightWindow)
         self.hsplitter.setStretchFactor(0,2)
-        self.hsplitter.setStretchFactor(1,3)
-        self.hsplitter.setStretchFactor(2,5)
+        self.hsplitter.setStretchFactor(1,8)
+        # self.hsplitter.setStretchFactor(2,5)
         self.setCentralWidget(self.hsplitter)
         self.resize(self.sizeHint())
         self.initialize()
@@ -123,6 +145,20 @@ class VerbWidget(QMainWindow,QObject):
         self.selectedRoleContent = None
         self.widgetID = UnionID()
         self.widgetType = WidgetType.VERB
+        self.preButton.setEnabled(False)
+        self.nextButton.setEnabled(False)
+        
+
+    def initializeVariables(self):
+        self.treeWidgetNum = 2
+        self.trees = []
+        self.TreeItemMaximum = 9        
+        self.currentPage = 1
+        self.existedPages = [0]        
+        self.roleRoots = []
+        self.roleContents = {}
+        self.curChoosedItemsInTreeWidget = []                      #用来保存当前TreeWidget中被选中的Items，用于翻页过程中的显示
+        self.defaultRole = "-"
 
         # self.pWidget.verbListwidget.itemDoubleClicked.connect()
 
@@ -130,18 +166,20 @@ class VerbWidget(QMainWindow,QObject):
         '''
             用于创建中间窗口的标签和表格
         '''
+
         widget = QWidget()
         label = QLabel()
         label.setText(text)
         label.setFixedWidth(70)
         table = QTableWidget()
         table.setRowCount(1)
-        table.setColumnCount(5)
+        table.setColumnCount(20)
         table.resizeRowsToContents()
         table.resizeColumnsToContents()
         table.setSelectionMode(QAbstractItemView.SingleSelection)
         table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         table.setShowGrid(False)
+        
         hbox = QHBoxLayout()
         hbox.addWidget(label)
         hbox.addWidget(table)
@@ -151,15 +189,29 @@ class VerbWidget(QMainWindow,QObject):
             Container.append(table)
         return widget , label , table
   
-    def _addWidgetInVBoxLayout(self,vws) :
+    def _addWidgetInVBoxLayout(self,vws,widgetRequire=False) :
         vbox = QVBoxLayout()
         for vw in vws :
             vbox.addWidget(vw)
+        if widgetRequire :
+            widget = QWidget()
+            widget.setLayout(vbox)
+            return widget
         return vbox
+    
+    def _addWidgetInHBoxLayout(self,hws,widgetRequire=False) :
+        hbox = QHBoxLayout()
+        for hw in hws :
+            hbox.addWidget(hw)
+        if widgetRequire :
+            widget = QWidget()
+            widget.setLayout(hbox)
+            return widget
+        return hbox
         
-    def updateRoleLabel(self,roles):
+    def updateRoleLabel(self,roles,indexs):
         '''
-            用于更新role label的文本内容，响应右窗口的“确定”按钮
+            用于更新role label的文本内容，响应“选择角色窗口”中的“确定”按钮
         '''
         
         def update():
@@ -167,6 +219,7 @@ class VerbWidget(QMainWindow,QObject):
             Roles[0:len(roles)] = roles
             for i , role in enumerate(Roles) :
                 getattr(self,"role{}".format(i+1)).setText(role)
+            self.curChoosedItemsInTreeWidget = indexs
 
         if len(roles) <= self.roleNum :
             update()
@@ -190,7 +243,7 @@ class VerbWidget(QMainWindow,QObject):
         existedRoleNum = len(labels)
         for rolenum in roles :
             rolename = "role{}".format(rolenum+existedRoleNum)
-            role , roleContent = addContent(self,"-",controlcontents,rolenum+existedRoleNum,self.textClickSignal,tagWidth=self.tagWidth,contentWidth=self.contentWidth,checkBoxHidden=False)
+            role , roleContent = addContent(self,self.defaultRole,controlcontents,rolenum+existedRoleNum,self.textClickSignal,tagWidth=self.tagWidth,contentWidth=self.contentWidth,checkBoxHidden=False)
             setattr(self,rolename,role)
             setattr(self,"roleContent{}".format(rolenum+existedRoleNum),roleContent)
             print("roleContent{}".format(rolenum+existedRoleNum))
@@ -219,21 +272,36 @@ class VerbWidget(QMainWindow,QObject):
             showContentInTableWidget(self.originVerbTable,verbs)
             # print(extractXML(verbs[0]))
         else:
+            QMessageBox.warning(self,"警告",self.tr("没有找到动词 {} 可能的现在时态").format(verb),QMessageBox.Ok,QMessageBox.Ok)
             print("not found")
+            
 
     def SearchButtonClickEvent(self):
+        flag = False
+        verb = None
         for table in self.lemmatizationWidget :
             items = table.selectedItems()
             if items is not None and items :
+                flag = True
                 verb = items[0].text().strip()
-                if verb == "" :
-                    break
-                verbroles = extractXML(verb)
-                if verbroles :
-                    self.showRoles(verbroles)
-                else:
-                    print("not found in PropBank")
+    
                 break
+        if not flag and self.lemmatizationWidget :
+            table = self.lemmatizationWidget[0]
+            # table = QTableWidget()
+            item = table.itemAt(QPoint(0,0))
+            if item is not None :
+                verb = item.text().strip()
+        if verb is None or verb == "" :
+            return
+        verbroles = extractXML(verb)
+        if verbroles :
+            self.showRoles(verbroles)
+        else:
+            QMessageBox.warning(self,"警告",self.tr("没有找到动词 {} 对应的词条信息").format(verb),QMessageBox.Ok,QMessageBox.Ok)
+            print("not found in PropBank")
+            
+            
 
     def showRoles(self,roleset):
         def add(contents,word,roles):
@@ -241,22 +309,129 @@ class VerbWidget(QMainWindow,QObject):
             Roles = sorted(roles,key=lambda x:x['num'])
             for r in Roles :
                 contents[word].append((r['role'],r['descr']))
-        self.tree.clear()
+        # self.tree.clear()
+        self.TreeWidgetClear(True)
         roots = []
         contents = {}
         for role in roleset :
             roots.append(role['word'])
             add(contents,role['word'],role['roles'])
         # self.tree.addTreeRoots(["root","berh"],{"root":[("A","a"),("PAG","pag")],"berh":[("b","b")]})
-        self.tree.addTreeRoots(roots,contents)
+        self.roleRoots = roots
+        self.roleContents = contents
+        self.showPage()
+        # self.tree.addTreeRoots(roots,contents)
     
     def getRoles(self):
         roles = []
         for rolenum in range(self.roleNum) :
             role = getattr(self,"role{}".format(rolenum+1)).text()
             content = getattr(self,"roleContent{}".format(rolenum+1)).toPlainText()
+            if role == self.defaultRole :
+                continue
             roles.append((role,content))
         return roles
+
+    def showPage(self):
+        '''
+            用于分页显示
+        '''
+        def show(num,existedItemNum,role,content):
+            size = len(content) + 1
+            if size + existedItemNum > self.TreeItemMaximum :
+                existedItemNum = 0
+                num += 1
+            if num >= self.treeWidgetNum :
+                return False , 0 , 0
+            
+            if role in self.curChoosedItemsInTreeWidget :
+                for i in self.curChoosedItemsInTreeWidget[:-1] :
+                    existedContent = list(content[i])
+                    existedContent.append(True)
+                    content[i] = tuple(existedContent)
+                    
+            self.trees[num].addTreeRoots([role],{role:content})
+            return True , num , size + existedItemNum
+
+
+        currentTreeNum = 0
+        existedItemNum = 0
+
+        if not self.roleRoots :
+            return
+        flag = False
+
+        roleRoots = None
+        if self.currentPage >= len(self.existedPages) :
+            roleRoots = self.roleRoots[self.existedPages[-1]:]
+        else:
+            roleRoots = self.roleRoots[self.existedPages[self.currentPage-1]:self.existedPages[self.currentPage]]
+            flag = True
+
+        if roleRoots is not None :
+            if roleRoots :
+                self.TreeWidgetClear()
+            else:
+                return
+        else:
+            return
+        # print("currentPage ",self.currentPage)
+
+        for index , root in enumerate(roleRoots) :
+            c , currentTreeNum , existedItemNum = show(currentTreeNum,existedItemNum,root,list(self.roleContents[root]))
+            if c == False :
+                self.existedPages.append(self.existedPages[-1]+index)
+                # print(self.existedPages)
+                flag = True
+                break
+        if not flag :
+            self.existedPages.append(self.existedPages[-1]+len(roleRoots))
+         
+            # print(self.existedPages)
+        if len(self.roleRoots) > self.existedPages[-1] :
+            self.nextButton.setEnabled(True)
+        else:
+            self.nextButton.setEnabled(False)
+            
+        
+
+    def TreeWidgetClear(self,allClear=False):
+        '''
+            用于清空TreeWidget的Items，如果allClear为真，还会初始化分页现实的参数
+        '''
+        for tree in self.trees :
+            tree.clear()
+
+        if allClear :
+            self.currentPage = 1
+            self.existedPages = [0]    
+            self.preButton.setEnabled(False)
+
+    def preButtonClickEvent(self):
+        '''
+            前翻按钮
+        '''
+        if self.currentPage == 1 :
+            return
+        self.currentPage -= 1
+        # print("pre ",self.currentPage)
+        self.showPage()
+        if self.currentPage == 1 :
+            self.preButton.setEnabled(False)
+        self.nextButton.setEnabled(True)
+
+    def nextButtonClickEvent(self):
+        '''
+            后翻按钮
+        '''
+        self.currentPage += 1        
+        if len(self.roleRoots) <= self.existedPages[-1] :
+            if self.currentPage >= len(self.existedPages) :
+                self.currentPage = len(self.existedPages) - 1
+        
+        self.showPage()
+        self.preButton.setEnabled(True)
+
 
 # class VerbTabWidget(QMainWindow):
 #     '''
