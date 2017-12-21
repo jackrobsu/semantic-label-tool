@@ -5,6 +5,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QTabWidget
 from PyQt5.QtWidgets import *
 from utilities import *
+from TreeWidget import Tree
+import codecs
 
 class ConjunctionWidget(QMainWindow,QObject):
     textClickSignal = pyqtSignal(QWidget,int,CommonTextEdit)         #鼠标点击响应信号
@@ -13,11 +15,12 @@ class ConjunctionWidget(QMainWindow,QObject):
     def __init__(self,pWidget) :
         super().__init__()
         self.pWidget = pWidget
-
+        self.initializeVariables()
         self.splitWindow()                      
         controlContents = self.ContentAdd()  
         self.gridAddForLeftWindow(controlContents)
 
+        self.addWidgetInRightWindow()
       
 
         self.setCentralWidget(self.splitter)
@@ -43,15 +46,16 @@ class ConjunctionWidget(QMainWindow,QObject):
         '''
         controlContents = []
         self.conjunctionLabel , self.conjunctionContent = addContent(self,"连词",controlcontents=controlContents,num=0,signal=self.textClickSignal)
-        controlContents.append(None)
-        controlContents.append(None)     
-        controlContents.append(None)
-        self.leftSentenceLabel , self.leftSentenceContent = addContent(self,"子句1",controlcontents=controlContents,num=1,signal=self.textClickSignal,checkBoxHidden=False)
-        self.leftSentenceRoleLabel , self.leftSentenceRoleContent = addContent(self,"语义角色",controlcontents=controlContents,num=2,signal=self.textClickSignal,tagWidth=50)
-        self.rightSentenceLabel , self.rightSentenceContent = addContent(self,"子句2",controlcontents=controlContents,num=3,signal=self.textClickSignal,checkBoxHidden=False)
-        self.rightSentenceRoleLabel , self.rightSentenceRoleContent = addContent(self,"语义角色",controlcontents=controlContents,num=4,signal=self.textClickSignal,tagWidth=50)
-        self.allLabels = ['conjunctionLabel', 'leftSentenceLabel', 'leftSentenceRoleLabel', 'rightSentenceLabel','rightSentenceRoleLabel']
-        
+        # self.conjunctionRoleLabel , self.conjunctionRoleContent = addContent(self,"语义角色",controlcontents=controlContents,num=1,signal=self.textClickSignal,tagWidth=50)
+       
+        self.leftSentenceLabel , self.leftSentenceContent , self.leftRefTag= addContent(self,"子句1",controlcontents=controlContents,num=1,signal=self.textClickSignal,checkBoxHidden=False,needTagTextEdit=True)
+        # self.addPadding(controlContents,3)
+        # self.leftSentenceRoleLabel , self.leftSentenceRoleContent = addContent(self,"语义角色",controlcontents=controlContents,num=2,signal=self.textClickSignal,tagWidth=50)
+        self.rightSentenceLabel , self.rightSentenceContent , self.rightRefTag = addContent(self,"子句2",controlcontents=controlContents,num=2,signal=self.textClickSignal,checkBoxHidden=False,needTagTextEdit=True)
+        # self.addPadding(controlContents,3)
+        # self.rightSentenceRoleLabel , self.rightSentenceRoleContent = addContent(self,"语义角色",controlcontents=controlContents,num=4,signal=self.textClickSignal,tagWidth=50)
+        self.allLabels = ['conjunctionLabel', 'leftSentenceLabel', 'rightSentenceLabel']
+        self.allContents = ['conjunctionContent','leftSentenceContent','rightSentenceContent']
         return controlContents
 
     def gridAddForLeftWindow(self,controlContents):
@@ -59,8 +63,8 @@ class ConjunctionWidget(QMainWindow,QObject):
             把标签和文本输入框按网格方式布局
         '''
         self.gridbox = QGridLayout()
-        self.gridbox.setHorizontalSpacing(5)
-        numOfEachRow = 6
+        self.gridbox.setHorizontalSpacing(15)
+        numOfEachRow = 4
         for (i, tag) in enumerate(controlContents):
             row = int(i / numOfEachRow)
             col = i - row * numOfEachRow
@@ -72,6 +76,7 @@ class ConjunctionWidget(QMainWindow,QObject):
         self.buttonSaver.setText("保存")
         vbox = QVBoxLayout()
         vbox.addLayout(self.gridbox)
+        
         # vbox.addStretch(1)
         vbox.addWidget(self.buttonSaver)
         self.leftWindow.setLayout(vbox)
@@ -81,6 +86,13 @@ class ConjunctionWidget(QMainWindow,QObject):
         self.saverButtonSignal.connect(saveLexicon)
         self.widgetType = WidgetType.CONJUNCTION
         self.widgetID = UnionID()
+        self.conjunctionRole = None
+  
+
+    def initializeVariables(self):
+        self.trees = []
+        self.conjunctionTypes = []
+        self.conjunctionDict = {}   
 
     def getContent(self):
         return self.conjunctionContent.toPlainText()
@@ -92,4 +104,45 @@ class ConjunctionWidget(QMainWindow,QObject):
         sen2 = self.rightSentenceContent.toPlainText()
         return id1 , id2 , sen1 , sen2
 
+    def addPadding(self,controlContents,num) :
+        for _ in range(num) :
+            controlContents.append(None)
 
+
+    def addWidgetInRightWindow(self):
+        self.tree = Tree(self.rightWindow,self,mutexAnyItem=True,callback=self.callback)
+        self.tree.setMinimumWidth(self.rightWindow.width())
+        self.tree.setMinimumHeight(self.rightWindow.height())
+        self.trees.append(self.tree)
+        self.parseConjunctionFile()
+        self.tree.addTreeRoots(self.conjunctionTypes,self.conjunctionDict)
+
+    def parseConjunctionFile(self):
+        filename = "res/conjunction.txt"
+        try:
+            with open(filename,'r',encoding="utf-8") as f :
+                curConjunction = None
+                for line in f :
+                    if "@" in line and line.index("@") == 0 :
+                        curConjunction = line[1:].strip()
+                        self.conjunctionTypes.append(curConjunction)
+                        self.conjunctionDict[curConjunction] = []
+                    else:
+                        if curConjunction is None :
+                            continue
+                        arr = line.strip().split("#")
+                        if len(arr) == 2 :
+                            self.conjunctionDict[curConjunction].append(tuple(arr))
+        except Exception :
+            print("加载连词资源文件出错")
+            exit(0)
+
+            # print(self.conjunctionTypes)
+            # print(self.conjunctionDict)
+            # exit(0)
+
+    def callback(self,selectedItem):
+        if selectedItem is None :
+            return
+        self.conjunctionRole = {"role_ch-zh":selectedItem.text(0),"role":selectedItem.text(1)}
+        # print(selectedItem.text(0),selectedItem.text(1))

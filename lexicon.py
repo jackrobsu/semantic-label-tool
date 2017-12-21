@@ -17,7 +17,8 @@ class Lexicon():
         WTYPE.PROPOSITION:"ProPosition",
         WTYPE.NOUN:"Noun",
         WTYPE.VARIABLE:"Variable",
-        WTYPE.PRONOUN:"Pronoun"
+        WTYPE.PRONOUN:"Pronoun",
+        WTYPE.CONSTANT:"Constant"
     }
     def __init__(self,wordID,wtype,mainWord,roles={}):
         self.WType = wtype
@@ -25,19 +26,27 @@ class Lexicon():
         self.roles = roles
         self.wordID = wordID
 
+        #for verb
+        self.originVerb = None
+
         # for conjunction
         self.formerSentence = None
         self.latterSentence = None
         self.formerSentenceID = None
         self.latterSentenceID = None
+        self.conjunctionRole = {}
+
+        #for constant
+        self.isPronoun = False
+        self.ref = None
 
     def __str__(self):
-        return "wordType {} , mainWord {} , roles {} , wordID {}".format(self.typedict[self.WType],self.mainWord,self.roles,self.wordID)
+        return "wordType {} , mainWord {} , roles {} , wordID {} , isPronoun {} , ref {}".format(self.typedict[self.WType],self.mainWord,self.roles,self.wordID,self.isPronoun,self.ref)
         
-    def getFormatString(self,leftexistedIDs=[],rightexistedIDs=[]):
+    def getFormatString(self,IDs=[]):
         from singleInstance import searchLexiconByID
         
-        def getStringInConjunction(ID,text,existedIDs=[]):
+        def getString(ID,text,existedIDs=[]):
             
             lexicon = searchLexiconByID(ID)
             print("ID {} , searchID {} , lexicon {} , text {}".format(self.wordID,ID,lexicon,text))
@@ -48,25 +57,86 @@ class Lexicon():
             else:
                 # print("in searched word ",lexicon.wordID," mainword ", lexicon.mainWord)
                 existedIDs.append(lexicon.wordID)
-                return lexicon.getFormatString(existedIDs)
+                return lexicon.getFormatString(IDs=existedIDs)
                 # return lexicon.mainWord
         if self.WType == WTYPE.VERB :
+
             rolestring = None
             if self.roles :
                 rolestring = ",".join(["{}"]*len(self.roles))
-                rolestring = rolestring.format(*[ role[1] for role in self.roles] )
+                String = []
+                for role in self.roles :
+                    if self.wordID not in IDs :
+                        IDs.append(self.wordID)
+                    string = getString(role[2],role[1],IDs)
+                    String.append(string)
+                    IDs = [self.wordID]
+                rolestring = rolestring.format(*String)
+                # rolestring = rolestring.format(*[ getString(role[2],role[1],IDs) for role in self.roles] )
             if rolestring is not None :
                 return "{}({})".format(self.mainWord,rolestring)
             else:
                 return "{}".format(self.mainWord)
         elif self.WType == WTYPE.CONJUNCTION :
-            substring1 = getStringInConjunction(self.formerSentenceID,self.formerSentence,leftexistedIDs)
-            substring2 = getStringInConjunction(self.latterSentenceID,self.latterSentence,rightexistedIDs)
+            if self.wordID not in IDs :
+                IDs.append(self.wordID)
+            substring1 = getString(self.formerSentenceID,self.formerSentence,IDs)
+            IDs = [self.wordID]
+            substring2 = getString(self.latterSentenceID,self.latterSentence,IDs)
             return "{}({},{})".format(self.mainWord,substring1,substring2)
         elif self.WType == WTYPE.NOUN :
             return "{}".format(self.mainWord)
+        elif self.WType == WTYPE.CONSTANT :
+            if self.isPronoun :
+                return "?"+self.mainWord
+            else:
+                return self.mainWord
         else:
-            return "None"
+            return ""
+
+    def getFormat(self,results={},IDs=[]):
+        from singleInstance import searchLexiconByID
+
+        if self.wordID not in IDs :
+            IDs.append(self.wordID)
+        else:
+            return
+        if "verb" not in results :
+            results['verb'] = {}
+        if "conjunction" not in results :
+            results['conjunction'] = {}
+        if "variable" not in results :
+            results['variable'] = {}
+        if self.WType == WTYPE.VERB :
+            verb = "{}#{}".format(self.mainWord,self.wordID)
+            if self.mainWord not in results['verb'] :
+                results['verb'][verb] = {"ID":self.wordID,"roles":[],"word":self.mainWord,"originVerb":self.originVerb}
+            for role in self.roles :
+                results['verb'][verb]['roles'].append(role[0])
+            for role in self.roles :
+                lexicon = searchLexiconByID(role[2])
+                if lexicon is None :
+                    continue
+                lexicon.getFormat(results,IDs)
+        elif self.WType == WTYPE.CONJUNCTION :
+            conjunction = "{}#{}".format(self.mainWord,self.wordID)
+            if conjunction not in results['conjunction'] :
+                results['conjunction'][conjunction] = {"ID":self.wordID,"role":self.conjunctionRole,"word":self.mainWord}
+            leftlexicon = searchLexiconByID(self.formerSentenceID)
+            rightlexicon = searchLexiconByID(self.latterSentenceID)
+            if leftlexicon is not None :
+                leftlexicon.getFormat(results,IDs)
+            if rightlexicon is not None :
+                rightlexicon.getFormat(results,IDs)
+        elif self.WType == WTYPE.CONSTANT :
+            if self.isPronoun :
+                pronoun = "{}#{}".format(self.mainWord,self.wordID)
+                if pronoun not in results['variable'] :
+                    results['variable'][pronoun] = {"ID":self.wordID,"word":self.mainWord,"ref":self.ref}
+        else:
+            return
+                
+                
             
 
 

@@ -10,7 +10,7 @@ class TreeItem(QTreeWidgetItem):
     
 class Tree(QTreeWidget):  
   
-    def __init__(self, parent = None , mainWindow=None , windowIndex=0):  
+    def __init__(self, parent = None , mainWindow=None , windowIndex=0 , mutexAnyItem=False , callback=None):  
   
         super(Tree, self).__init__(parent)  
         self.mainWindow = mainWindow
@@ -22,6 +22,8 @@ class Tree(QTreeWidget):
         self.itemClicked.connect(self.ItemClickedEvent)
         self.itemDoubleClicked.connect(self.ItemDoubleClickedEvent)
         self.windowIndex = windowIndex
+        self.mutexAnyItem = mutexAnyItem
+        self.callback = callback
         # self.addTopLevelItem(root)
         # for s in ['foo', 'bar']:  
         #     MyTreeItem(s, self)  
@@ -57,11 +59,13 @@ class Tree(QTreeWidget):
         
         def Clear(clickedItemIndex,obj):
             for index in range(obj.topLevelItemCount()) :
-                if index == clickedItemIndex :
+                if index == clickedItemIndex and not self.mutexAnyItem :
                     continue
                 item = obj.topLevelItem(index)
                 for subItemIndex in range(item.childCount()) :
                     subItem = item.child(subItemIndex)
+                    if subItem is WidgetItem :
+                        continue
                     subItem.setCheckState(0,Qt.Unchecked)
 
         if WidgetItem is None :
@@ -72,6 +76,8 @@ class Tree(QTreeWidget):
         clickedItemIndex = self.indexOfTopLevelItem(WidgetItem.parent())
         if clickedItemIndex == -1 :
             return
+        if self.callback is not None :
+            self.callback(WidgetItem)
         Clear(clickedItemIndex,self)
         for treeWidget in self.mainWindow.trees :
             if treeWidget.windowIndex == self.windowIndex :

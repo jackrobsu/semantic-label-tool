@@ -4,7 +4,7 @@ from utilities import *
 class ComListWidget(QMainWindow):
     AddSignal = pyqtSignal(QWidget)
     typedict = {
-        WidgetType.VERB:"动词语义形式",
+        WidgetType.VERB:"动词短语",
         WidgetType.CONJUNCTION:"连词语义形式",
         WidgetType.PREPOSITION:"介词语义形式",
         WidgetType.NOUN:"名词所有格形式",

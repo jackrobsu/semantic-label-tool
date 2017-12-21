@@ -48,7 +48,8 @@ class MyApp(QMainWindow):
         self.sentenceshow.resizeRowsToContents()
         self.sentenceshow.resizeColumnsToContents()
         self.sentenceshow.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.sentenceshow.resize(self.MainWindowWidth,100)
+        # self.sentenceshow.resize(self.MainWindowWidth,150)
+        self.sentenceshow.setFixedHeight(100)
         # self.sentenceshow.addItem("dgagerr")
 
         self.buttonAddSomeWords = QPushButton()
@@ -65,13 +66,14 @@ class MyApp(QMainWindow):
         self.verbListwidget = ComListWidget(self,"verbTab",WidgetType.VERB)                              #CommonListWidget(self,"verbTab")
         self.conjunctionwidget = ComListWidget(self,"conjunctionTab",WidgetType.CONJUNCTION)
         # self.prepositionwidget = ComListWidget(self,"prepositionTab",WidgetType.PREPOSITION)
-        self.nounwidget = ComListWidget(self,"nounTab",WidgetType.NOUN)
+        # self.nounwidget = ComListWidget(self,"nounTab",WidgetType.NOUN)
         # self.pronounwidget = ComListWidget(self,"pronounTab",WidgetType.PRONOUN)
         
         self.typeGroupssplitter.addWidget(self.verbListwidget)
         self.typeGroupssplitter.addWidget(self.conjunctionwidget)
+        self.typeGroupssplitter.setFixedHeight(150)
         # self.typeGroupssplitter.addWidget(self.prepositionwidget)
-        self.typeGroupssplitter.addWidget(self.nounwidget)
+        # self.typeGroupssplitter.addWidget(self.nounwidget)
         # self.typeGroupssplitter.addWidget(self.pronounwidget)
         
         #用来连接列表框和tab框
@@ -87,13 +89,13 @@ class MyApp(QMainWindow):
         
         self.verbTab = VerbTabWidget(self)
         self.conjunctionTab = ConjunctionTabWidget(self)
-        self.prepositionTab = QWidget()
-        self.nounTab = BasicTabWidget(self,WidgetType.NOUN)
-        self.pronounTab = QWidget()
+        # self.prepositionTab = QWidget()
+        # self.nounTab = BasicTabWidget(self,WidgetType.NOUN)
+        # self.pronounTab = QWidget()
         # self.contentTabs.addTab(self.prepositionTab,"介词")        
         self.contentTabs.addTab(self.verbTab,"动词")
         self.contentTabs.addTab(self.conjunctionTab,"连词")
-        self.contentTabs.addTab(self.nounTab,"名词")        
+        # self.contentTabs.addTab(self.nounTab,"名词")        
         # self.contentTabs.addTab(self.pronounTab,"代词")
         
 
@@ -104,15 +106,23 @@ class MyApp(QMainWindow):
             }
 
         self.contentTabs.resize(self.MainWindowWidth,400)
+    
+        self.sureButton = getButton("确定",width=140,event=self.sureButtonClickedEvent)
+        self.tempSureButton = getButton("暂定",width=140,event=self.tempSureButtonClickedEvent)
 
         self.verticalSplitter = QSplitter(Qt.Vertical)
         self.verticalSplitter.addWidget(sentencewidget)
         self.verticalSplitter.addWidget(self.typeGroupssplitter)
         self.verticalSplitter.addWidget(self.contentTabs)
+        self.verticalSplitter.addWidget(addWidgetInHBoxLayout([self.tempSureButton,self.sureButton],True))
 
-        self.verticalSplitter.setStretchFactor(0,3)
-        self.verticalSplitter.setStretchFactor(1,3)
-        self.verticalSplitter.setStretchFactor(2,5)
+      
+
+        # self.verticalSplitter.addWidget()
+
+        # self.verticalSplitter.setStretchFactor(0,3)
+        # self.verticalSplitter.setStretchFactor(1,6)
+        # self.verticalSplitter.setStretchFactor(2,5)
         self.setCentralWidget(self.verticalSplitter)
         
 
@@ -145,6 +155,7 @@ class MyApp(QMainWindow):
         # self.setGeometry(300,300,300,150)
         self.resize(self.MainWindowWidth,700)
         self.center()
+        self.setWindowFlags(Qt.WindowMinimizeButtonHint|Qt.WindowCloseButtonHint)
         self.show()
 
     def center(self):
@@ -196,6 +207,30 @@ class MyApp(QMainWindow):
         # if selectedRoleContent is not None :
         #     selectedRoleContent.setText(s)
         
+    def sureButtonClickedEvent(self):
+        print("press")
+        listWindow = self.conjunctionwidget.listWindow
+        count = listWindow.count()
+        results = {}
+        formalSentences = []
+        for index in range(count) :
+            item = listWindow.item(index)
+            lexicon = searchLexiconByID(item.itemID)
+            print("end")
+            if lexicon is None :
+                print("not found")
+                continue
+            lexicon.getFormat(results)
+            formalSentences.append(lexicon.getFormatString())
+        
+        if results :
+            results['formalSentences'] = formalSentences
+            print(results)
+            writeFile(results)
+
+    def tempSureButtonClickedEvent(self):
+        pass
+
 
 
 if __name__ == "__main__":

@@ -25,15 +25,16 @@ class VerbWidget(QMainWindow,QObject):
         self.contentWidth = 150
         self.tagWidth = 40
         (self.verb,self.verbContent) = addContent(self,'动词', controlcontents, 0 , self.textClickSignal,tagWidth=self.tagWidth,contentWidth=self.contentWidth)
-        
+        controlcontents.append(None)
         # (self.role1,self.roleContent1) = addContent(self,'role1', controlcontents, 1 , self.textClickSignal,tagWidth=tagWidth,contentWidth=contentWidth)
         # (self.role2,self.roleContent2) = addContent(self,'role2', controlcontents, 2 , self.textClickSignal,tagWidth=tagWidth,contentWidth=contentWidth)
         # (self.role3,self.roleContent3) = addContent(self,'role3', controlcontents, 3 , self.textClickSignal,tagWidth=tagWidth,contentWidth=contentWidth)
 
         self.roleNum = 0
         self.allLabels = ['verb']
-        
-        self.addRoleContent(self.roleNum,self.allLabels,controlcontents)
+        self.allContents = ['verbContent']
+        self.allRefTags = ['tag']
+        self.addRoleContent(self.roleNum,self.allLabels,self.allContents,controlcontents)
         # roles = range(self.roleNum)
         # for rolenum in roles :
         #     rolename = "role{}".format(rolenum+1)
@@ -45,7 +46,7 @@ class VerbWidget(QMainWindow,QObject):
         self.gridbox = QGridLayout()
         self.gridbox.setHorizontalSpacing(0)
         # print(len(controlcontents))
-        self.AddElementIntoGridBox(controlcontents,3)
+        self.AddElementIntoGridBox(controlcontents,4)
 
         self.buttonSaver = SaverButton(self,self.saverButtonSignal,self.pWidget,WidgetType.VERB)
         self.buttonSaver.setText("保存")
@@ -158,6 +159,7 @@ class VerbWidget(QMainWindow,QObject):
         self.roleRoots = []
         self.roleContents = {}
         self.curChoosedItemsInTreeWidget = []                      #用来保存当前TreeWidget中被选中的Items，用于翻页过程中的显示
+        self.originVerb = None
         self.defaultRole = "-"
 
         # self.pWidget.verbListwidget.itemDoubleClicked.connect()
@@ -211,7 +213,7 @@ class VerbWidget(QMainWindow,QObject):
         
     def updateRoleLabel(self,roles,indexs):
         '''
-            用于更新role label的文本内容，响应“选择角色窗口”中的“确定”按钮
+            用于更新role label的文本内容，响应“选择语义角色窗口”中的“确定”按钮
         '''
         
         def update():
@@ -227,15 +229,15 @@ class VerbWidget(QMainWindow,QObject):
             rolelength = len(roles)
             addedRoleNum = rolelength - self.roleNum
             controlcontents = []
-            self.addRoleContent(addedRoleNum,self.allLabels,controlcontents)
-            self.AddElementIntoGridBox(controlcontents,initialRow=self.gridbox.rowCount())
+            self.addRoleContent(addedRoleNum,self.allLabels,self.allContents,controlcontents)
+            self.AddElementIntoGridBox(controlcontents,numOfEachRow=4,initialRow=self.gridbox.rowCount())
             print(len(controlcontents),addedRoleNum)
 
             self.roleNum += addedRoleNum
             update()
 
 
-    def addRoleContent(self,num,labels,controlcontents):
+    def addRoleContent(self,num,labels,contents,controlcontents):
         '''
             用于增加role label和role content
         '''
@@ -243,11 +245,14 @@ class VerbWidget(QMainWindow,QObject):
         existedRoleNum = len(labels)
         for rolenum in roles :
             rolename = "role{}".format(rolenum+existedRoleNum)
-            role , roleContent = addContent(self,self.defaultRole,controlcontents,rolenum+existedRoleNum,self.textClickSignal,tagWidth=self.tagWidth,contentWidth=self.contentWidth,checkBoxHidden=False)
+            role , roleContent , reftag = addContent(self,self.defaultRole,controlcontents,rolenum+existedRoleNum,self.textClickSignal,tagWidth=self.tagWidth,contentWidth=self.contentWidth,checkBoxHidden=False,needTagTextEdit=True)
             setattr(self,rolename,role)
             setattr(self,"roleContent{}".format(rolenum+existedRoleNum),roleContent)
+            setattr(self,"reftag{}".format(rolenum+existedRoleNum),reftag)
             print("roleContent{}".format(rolenum+existedRoleNum))
             labels.append(rolename)
+            contents.append("roleContent{}".format(rolenum+existedRoleNum))
+            self.allRefTags.append("reftag{}".format(rolenum+existedRoleNum))
 
     def AddElementIntoGridBox(self,controlcontents,numOfEachRow=3,initialRow=0):
         for (i, tag) in enumerate(controlcontents):
@@ -294,6 +299,7 @@ class VerbWidget(QMainWindow,QObject):
                 verb = item.text().strip()
         if verb is None or verb == "" :
             return
+        self.originVerb = verb
         verbroles = extractXML(verb)
         if verbroles :
             self.showRoles(verbroles)
@@ -326,10 +332,11 @@ class VerbWidget(QMainWindow,QObject):
         roles = []
         for rolenum in range(self.roleNum) :
             role = getattr(self,"role{}".format(rolenum+1)).text()
-            content = getattr(self,"roleContent{}".format(rolenum+1)).toPlainText()
+            Content = getattr(self,"roleContent{}".format(rolenum+1))
+            content = Content.toPlainText()
             if role == self.defaultRole :
                 continue
-            roles.append((role,content))
+            roles.append((role,content,Content.lexiconID))
         return roles
 
     def showPage(self):
@@ -432,6 +439,20 @@ class VerbWidget(QMainWindow,QObject):
         self.showPage()
         self.preButton.setEnabled(True)
 
+    def checkRefTag(self):
+        if len(self.allRefTags) == 1 :
+            return
+        for i , tag in enumerate(self.allRefTags[1:]) :
+            tagtext = getattr(self,tag)
+            # QTextEdit().isEnabled
+            if not tagtext.isEnabled() :
+                continue
+            print(tagtext.toPlainText())
+            print(i)
+            text = getattr(self,self.allContents[i+1])
+            lexicon = searchLexiconByID(text.lexiconID)
+            lexicon.ref = tagtext.toPlainText()
+            print(lexicon)
 
 # class VerbTabWidget(QMainWindow):
 #     '''

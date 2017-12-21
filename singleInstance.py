@@ -78,7 +78,7 @@ class MessageContainer(SingleInstance):
 def searchLexiconByID(lexiconID):
     if lexiconID is None :
         return None
-    objects = [Verbs(),Conjunctions()]
+    objects = [Verbs(),Conjunctions(),Constants()]
     for obj in objects :
         w = obj.getItem(lexiconID)
         if w is not None :
