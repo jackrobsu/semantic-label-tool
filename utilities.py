@@ -129,11 +129,17 @@ class CommonListWidget(QListWidget):
                 traceback.print_exc()
             
 class CheckBox(QCheckBox):
-    def __init__(self,textedit,tagTextEdit=None):
-        super().__init__()
+    def __init__(self,pWidget,textedit,tagTextEdit=None,num=-1):
+        '''
+            tagTextEdit: 对应的用来填指代所指内容的文本框
+            num: 对应roleLabel和content的编号
+        '''
+        super().__init__(pWidget)
+        self.pWidget = pWidget
         self.textedit = textedit
         self.clicked.connect(self.ItemClickedEvent)
         self.tagTextEdit = tagTextEdit
+        self.num = num
     def ItemClickedEvent(self,event):
         '''
             主要用来设置是否是代词
@@ -161,6 +167,7 @@ class CheckBox(QCheckBox):
                 setPronoun(True)
                 if self.tagTextEdit is not None :
                     self.tagTextEdit.setEnabled(True)
+            textEditSelectionChanged(self.pWidget,self.num,self.tagTextEdit)
         else:
             text = self.textedit.toPlainText()
             if text is None or text == "" :
@@ -173,7 +180,9 @@ class CheckBox(QCheckBox):
                         self.tagTextEdit.setEnabled(False)
             except Exception :
                 pass
-
+            if self.num+1 < len(self.pWidget.allContents) :
+                textEditSelectionChanged(self.pWidget,self.num+1,getattr(self.pWidget,"roleContent"+str(self.num+1)))
+            
     def addTagTextEdit(self,textedit):
         self.tagTextEdit = textedit
 
@@ -230,7 +239,7 @@ def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=
     # hbox.setStretch(1, 5)
     # hbox.setContentsMargins(1, 1, 1, 1)
     # widget.setLayout(hbox)
-    checkbox = CheckBox(content)
+    checkbox = CheckBox(obj,content,num=num)
     checkbox.setHidden(checkBoxHidden)
     
     if signal is None :
@@ -291,12 +300,14 @@ def addWordsToSelectedTextEdit(text,itemID):
     return False
 
 def textEditSelectionChanged(widgetObj,num, textobj):
-    if not hasattr(widgetObj,"allLabels") :
+    if not hasattr(widgetObj,"allLabels") or textobj is None :
         return
     if num == -1 :
         widgetObj.selectedRoleContent = textobj
         messagecontainer = MessageContainer()
         messagecontainer.setMessage("selectedRoleContent",textobj)
+        messagecontainer.setMessage("nextRoleLableNum",None)        
+        messagecontainer.setMessage("curWidget",None)
         return
     for (i, label) in enumerate(widgetObj.allLabels):
         obj = getattr(widgetObj, label)
@@ -308,9 +319,9 @@ def textEditSelectionChanged(widgetObj,num, textobj):
             messagecontainer = MessageContainer()
             messagecontainer.setMessage("selectedRoleContent",textobj)
 
-            # if i < len(widgetObj.allLabels) - 1 :
-            #     messagecontainer.setMessage("nextRoleLableNum",i+1)
-            #     messagecontainer.setMessage("curWidget",widgetObj)
+            if i < len(widgetObj.allLabels) - 1 :
+                messagecontainer.setMessage("nextRoleLableNum",i+1)
+                messagecontainer.setMessage("curWidget",widgetObj)
                 # messagecontainer.setMessage("nextRoleContent",widgetObj.allContents[i+1])
             continue
         obj.setStyleSheet('color:black')
@@ -497,7 +508,6 @@ def addWidgetInHBoxLayout(hws,widgetRequire=False) :
 def writeFile(results=None):
     if results is None :
         return
-    # global curr_line,text ,transRst ,variaDic,typeRst ,searchRst ,curr_showNum ,verbItem ,verbSelect,verbRst,prepRst,searchContent
 
     root_xml = Element('root')
     sentence_xml = SubElement(root_xml, 'sentence')
