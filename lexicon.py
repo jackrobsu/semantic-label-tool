@@ -28,6 +28,7 @@ class Lexicon():
 
         #for verb
         self.originVerb = None
+        self.isNegative = False
 
         # for conjunction
         self.formerSentence = None
@@ -41,7 +42,7 @@ class Lexicon():
         self.ref = None
 
     def __str__(self):
-        return "wordType {} , mainWord {} , roles {} , wordID {} , isPronoun {} , ref {}".format(self.typedict[self.WType],self.mainWord,self.roles,self.wordID,self.isPronoun,self.ref)
+        return "wordType {} , mainWord {} , roles {} , wordID {} , isPronoun {} , ref {} , isNegative {}".format(self.typedict[self.WType],self.mainWord,self.roles,self.wordID,self.isPronoun,self.ref,self.isNegative)
         
     def getFormatString(self,IDs=[]):
         from singleInstance import searchLexiconByID
@@ -73,10 +74,14 @@ class Lexicon():
                     IDs = [self.wordID]
                 rolestring = rolestring.format(*String)
                 # rolestring = rolestring.format(*[ getString(role[2],role[1],IDs) for role in self.roles] )
-            if rolestring is not None :
-                return "{}({})".format(self.mainWord,rolestring)
+            if self.isNegative :
+                mainWord = "¬" + self.mainWord
             else:
-                return "{}".format(self.mainWord)
+                mainWord = self.mainWord
+            if rolestring is not None :
+                return "{}({})".format(mainWord,rolestring)
+            else:
+                return "{}".format(mainWord)
         elif self.WType == WTYPE.CONJUNCTION :
             if self.wordID not in IDs :
                 IDs.append(self.wordID)

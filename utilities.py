@@ -10,6 +10,7 @@ from singleInstance import *
 import traceback
 import xml.etree.cElementTree as ET
 from xml.etree.ElementTree import Element, SubElement, ElementTree
+import hashlib
 
 class WidgetType(Enum):
     VERB = 0
@@ -83,9 +84,11 @@ class CommonListWidgetItem(QListWidgetItem) :
         用来显示已经保存的短语或词等
         itemID:是与词条对应的ID，用来查找相应的词条以获取更多信息
     '''
-    def __init__(self,itemID):
+    def __init__(self,itemID,needCheckState=False):
         super().__init__()
         self.itemID = itemID
+        if needCheckState :
+            self.setCheckState(Qt.Unchecked)
 
     def setLexiconID(self,ID):
         self.itemID = ID
@@ -186,6 +189,24 @@ class CheckBox(QCheckBox):
     def addTagTextEdit(self,textedit):
         self.tagTextEdit = textedit
 
+class CheckBoxForNegativeVerb(QCheckBox):
+    def __init__(self,pWidget,connectedLabel=None):
+        super().__init__(pWidget)
+        self.pWidget = pWidget
+        self.connectedLabel = connectedLabel
+        self.clicked.connect(self.ItemClickedEvent)
+     
+    def ItemClickedEvent(self):
+        if self.checkState() == Qt.Checked :
+             self.pWidget.isNegative = True
+             if self.connectedLabel is not None :
+                 self.connectedLabel.setStyleSheet("color:red;")
+        else:
+            self.pWidget.isNegative = False
+            if self.connectedLabel is not None :
+                self.connectedLabel.setStyleSheet("color:black;")
+
+
 class CommonEventHandle :
     
     def __init__(self):
@@ -217,9 +238,10 @@ class CommonEventHandle :
 
 ##############################################################
 
-def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=30,contentHeight=30,contentWidth=100,needCheckBox=False,checkBoxHidden=True,needTagTextEdit=False):
+def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=30,contentHeight=30,contentWidth=100,needCheckBox=False,checkBoxHidden=True,needTagTextEdit=False,noCheckBox=False,noTagTextEdit=False):
     '''
         用于给页面添加基本的标签和文本编辑框
+        noCheckBox和noTagTextEdit如果为真，表示不要添加到controlcontents中去
     '''
     # widget = QWidget()
     # hbox = QHBoxLayout()
@@ -239,8 +261,12 @@ def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=
     # hbox.setStretch(1, 5)
     # hbox.setContentsMargins(1, 1, 1, 1)
     # widget.setLayout(hbox)
-    checkbox = CheckBox(obj,content,num=num)
-    checkbox.setHidden(checkBoxHidden)
+    if not noCheckBox :
+        checkbox = CheckBox(obj,content,num=num)
+        checkbox.setHidden(checkBoxHidden)
+    else:
+        needCheckBox = False
+        
     
     if signal is None :
         reftag = QTextEdit()
@@ -249,15 +275,18 @@ def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=
     reftag.setEnabled(False)
     reftag.setFixedWidth(50)
     reftag.setFixedHeight(30)
-    checkbox.addTagTextEdit(reftag)
+    if not noCheckBox :
+        checkbox.addTagTextEdit(reftag)
 
     controlcontents.append(tag)
     controlcontents.append(content)
-    controlcontents.append(checkbox)
-    if needTagTextEdit :
-        controlcontents.append(reftag)
-    else:
-        controlcontents.append(None)
+    if not noCheckBox :
+        controlcontents.append(checkbox)
+    if not noTagTextEdit :
+        if needTagTextEdit :
+            controlcontents.append(reftag)
+        else:
+            controlcontents.append(None)
     
 
     if needCheckBox and needTagTextEdit :
@@ -275,6 +304,7 @@ def addWordsToSelectedTextEdit(text,itemID):
     '''
     messagecontainer = MessageContainer()
     selectedRoleContent = messagecontainer.getMessage("selectedRoleContent")
+    print("selectedRoleContent ",selectedRoleContent)
     if selectedRoleContent is not None :
         selectedRoleContent.setText(text)
         selectedRoleContent.setLexiconID(itemID)
@@ -321,6 +351,7 @@ def textEditSelectionChanged(widgetObj,num, textobj):
             widgetObj.selectedRoleContent = textobj
             messagecontainer = MessageContainer()
             messagecontainer.setMessage("selectedRoleContent",textobj)
+            print("textobj ",textobj)
 
             if i < len(widgetObj.allLabels) - 1 :
                 messagecontainer.setMessage("nextRoleLableNum",i+1)
@@ -385,6 +416,7 @@ def saveLexicon(obj,showWidget,tabwidget) :
         roles = obj.getRoles()
         lexicon.roles = roles
         lexicon.originVerb = obj.originVerb
+        lexicon.isNegative = obj.isNegative
         obj.checkRefTag()
 
     #添加到列表框中
@@ -452,7 +484,11 @@ def addItemToListWidget(ListWidget,lexicon):
         item.setLexiconID(lexicon.wordID)
         print(lexicon.wordID+" grehr "+item.itemID)
     else:
-        item = CommonListWidgetItem(lexicon.wordID)
+        if lexicon.WType == WTYPE.CONJUNCTION :
+            item = CommonListWidgetItem(lexicon.wordID,True)
+        else:
+            item = CommonListWidgetItem(lexicon.wordID)
+            
         item.setText(lexicon.getFormatString())
         ListWidget.addItem(item)
 
@@ -489,7 +525,9 @@ def showContentInTableWidget(tableWidget,contents,row=0,col=0,isClear=True) :
     if isClear :
         tableWidget.clear()
     for word in contents :
-        tableWidget.setItem(row,col,QTableWidgetItem(word+" "))
+        item = QTableWidgetItem(word)
+        item.setTextAlignment(Qt.AlignCenter)
+        tableWidget.setItem(row,col,item)
         col += 1
         if col >= tableWidget.columnCount() :
             row += 1
@@ -536,8 +574,8 @@ def writeFile(results=None):
     # type_xml = SubElement(root_xml, 'type')
     # type_xml.text=typeRst.strip('\n')
     tree = ElementTree(root_xml)
-
-    # sentence_xml.text = sentence['text']
+    sentence = results['rawSentence']
+    sentence_xml.text = sentence
 
     # for prep in prepRst:
     #     tempPrep = SubElement(preposition_xml, prep)
@@ -573,4 +611,7 @@ def writeFile(results=None):
     
     # translate_xml.text = transRst.strip('\n')
     # type_xml.text = typeRst.strip('\n')
-    tree.write('./result/%d.xml' % 0, encoding='utf-8')
+
+    filename = results['filename']
+    # f = open('./result/%s.xml' % filename,'a+')
+    tree.write(filename, encoding='utf-8')

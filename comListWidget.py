@@ -24,4 +24,7 @@ class ComListWidget(QMainWindow):
         self.splitter.addWidget(self.listWindow)
         self.splitter.addWidget(self.addButton)
         self.setCentralWidget(self.splitter)
+
+    def resetWidget(self):
+        self.listWindow.clear()
         

@@ -54,10 +54,16 @@ class BasicTabWidget(QMainWindow):
     def initialize(self) :
         self.tabAddSignal.connect(tabAdd)
 
+    def resetWidget(self):
+        self.tabWindow.clear()
+        # pass
+    def addTab(self):
+        tabAdd(self)
 
 class VerbTabWidget(BasicTabWidget):
     def __init__(self,pWidget):
         super(VerbTabWidget,self).__init__(pWidget,WidgetType.VERB)
+    
 
 
 class ConjunctionTabWidget(BasicTabWidget) :

@@ -1,5 +1,7 @@
 #-*- coding:utf-8 -*-
 import sys
+import os
+import re
 from PyQt5 import QtCore, QtGui, uic
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import QMainWindow , QApplication , QPushButton , QTabWidget 
@@ -12,6 +14,8 @@ from utilities import *
 from basicTabWidget import *
 from comListWidget import *
 from nounWidget import NounWidget
+import pandas as pd
+
 '''
     加载ui文件
 '''
@@ -25,7 +29,7 @@ class MyApp(QMainWindow):
         # Ui_MainWindow.__init__(self)
         # self.setupUi(self)
         rows = 3
-        cols = 30
+        cols = 20
         self.MainWindowWidth = 1000
         lenghtOfWord = 10
         defaultLength = 100
@@ -38,12 +42,14 @@ class MyApp(QMainWindow):
         # self.setTableWidgetColumns(self.sentenceshow,itemWidth=defaultLength)
         self.sentenceshow.setRowCount(rows)
         self.sentenceshow.setColumnCount(cols)
+        self.sentenceshow.verticalHeader().setVisible(False)
+        
         self.sentenceshow.setSelectionMode(QAbstractItemView.MultiSelection)
         self.sentenceshow.setShowGrid(False)
         # self.sentenceshow.columnWidth(defaultLength)
         # self.sentenceshow.setItem(0,0,QTableWidgetItem("dgaghrehrehreherherheeheherher"))
 
-        self.showSentence("Tim bought Eric a gecko, because he followed him.")
+        # self.showSentence("Tim bought Eric a gecko, because he followed him.")
 
         self.sentenceshow.resizeRowsToContents()
         self.sentenceshow.resizeColumnsToContents()
@@ -107,14 +113,16 @@ class MyApp(QMainWindow):
 
         self.contentTabs.resize(self.MainWindowWidth,400)
     
-        self.sureButton = getButton("确定",width=140,event=self.sureButtonClickedEvent)
+        self.sureButton = getButton("保存",width=140,event=self.sureButtonClickedEvent)
         self.tempSureButton = getButton("暂定",width=140,event=self.tempSureButtonClickedEvent)
+        self.nextButton = getButton("下一个",width=140,event=self.nextButtonClickedEvent)
+        
 
         self.verticalSplitter = QSplitter(Qt.Vertical)
         self.verticalSplitter.addWidget(sentencewidget)
         self.verticalSplitter.addWidget(self.typeGroupssplitter)
         self.verticalSplitter.addWidget(self.contentTabs)
-        self.verticalSplitter.addWidget(addWidgetInHBoxLayout([self.tempSureButton,self.sureButton],True))
+        self.verticalSplitter.addWidget(addWidgetInHBoxLayout([self.tempSureButton,self.sureButton,self.nextButton],True))
 
       
 
@@ -157,12 +165,30 @@ class MyApp(QMainWindow):
         self.center()
         self.setWindowFlags(Qt.WindowMinimizeButtonHint|Qt.WindowCloseButtonHint)
         self.show()
+        self.run()
 
     def center(self):
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
+    def run(self):
+        self.currnetHandledFile = None
+        if not os.path.exists("res/sentenceFileMap.csv") :
+            self.multifiles = pd.DataFrame({"sentence":[],"hashFile":[]})
+        else:
+            self.multifiles = pd.read_csv("res/sentenceFileMap.csv",index_col=0)
+            # print(self.multifiles.loc[self.multifiles['hashFile']=="result/a.xml"]['sentence'].tolist())
+            
+        self.sentenceGenerator = self.readFile()      
+        try:    
+            self.sentence = self.sentenceGenerator.__next__()
+        except StopIteration :
+            QMessageBox.information(self,"提示","没有可以标注的数据了，辛苦您了!",QMessageBox.Ok,QMessageBox.Ok)
+
+        self.nextButtonClickedEvent()
+         
 
     def setTableWidgetColumns(self,table,itemWidth=100,eachWidth=None):
         
@@ -181,7 +207,7 @@ class MyApp(QMainWindow):
 
         setColumns(items)
             
-    def showSentence(self,sentence):
+    def showSentence(self,sentence=None):
         # row = 0
         # col = 0
         # for word in sentence.split(" "):
@@ -192,8 +218,12 @@ class MyApp(QMainWindow):
             #     col = 0
             # if row >= self.sentenceshow.rowCount() :
             #     self.sentenceshow.insertRow(row)
-        showContentInTableWidget(self.sentenceshow,sentence.split(" "))
+        if sentence is not None :
+            showContentInTableWidget(self.sentenceshow,sentence.split(" "))
+
+                
         
+
     def addSomeWords(self):
         items = self.sentenceshow.selectedItems()
         items = sorted(items,key=lambda x : ( x.row(),x.column() ))
@@ -212,8 +242,14 @@ class MyApp(QMainWindow):
         count = listWindow.count()
         results = {}
         formalSentences = []
+        if count == 1 :
+            directFlag = True
+        else:
+            directFlag = False
         for index in range(count) :
             item = listWindow.item(index)
+            if not (item.checkState() or directFlag) :
+                continue
             lexicon = searchLexiconByID(item.itemID)
 
             print("string ",lexicon.getFormatString())
@@ -227,12 +263,93 @@ class MyApp(QMainWindow):
         # print("results ",results)
         if results :
             results['formalSentences'] = formalSentences
+            results['rawSentence'] = self.currentSentence
+
+            sentenceMD5 = hashlib.md5(self.currentSentence.encode("utf-8")).hexdigest()
+            sentenceSHA1 = hashlib.sha1(self.currentSentence.encode("utf-8")).hexdigest()
+            filename = "result/{}.xml".format(sentenceMD5 + sentenceSHA1)
+            flag = True
+            if filename not in self.multifiles['hashFile'].tolist() :
+                print("not exists")
+                pass
+            else:
+                if self.currentSentence in self.multifiles['sentence'].tolist() :
+                    filename = self.multifiles.loc[self.multifiles['sentence']==self.currentSentence]['hashFile'].tolist()[0]
+                    print("exists")
+                    flag = False
+                else:
+                    filename += str(int(time.time()))
+            if flag :
+                self.multifiles = self.multifiles.append(pd.Series({"sentence":self.currentSentence,"hashFile":filename}),ignore_index=True)
+                self.multifiles.to_csv("res/sentenceFileMap.csv")
             # print("results   ",results)
+            results['filename'] = filename
             writeFile(results)
+            open("usedDatas/{}".format(self.currnetHandledFile),'a+').write(self.currentSentence+"\n")            
+        else:
+            QMessageBox.warning(self,"警告","您还没有选择将要保存的连词语义表示",QMessageBox.Ok,QMessageBox.Ok)
 
     def tempSureButtonClickedEvent(self):
         pass
 
+    def nextButtonClickedEvent(self):
+        try:
+            sentence = self.sentence.__next__()            
+            self.currentSentence = self.wordsFilter(sentence)
+            self.showSentence(self.currentSentence)
+            self.resetWidget()
+            
+        except StopIteration :
+            self.run()
+
+    def readFile(self):
+        
+        def read(filename,exists=False):
+            if exists :
+                try:
+                    with open("usedDatas/{}".format(filename)) as f :
+                        sentences = f.read().strip().split("\n")
+                    print("exists sentences ",sentences)
+                except Exception :
+                    pass
+            else:
+                sentences = []
+            with open("datas/{}".format(filename),'r',encoding='utf-8') as f :
+                for line in f :
+                    line = line.strip()
+                    line = self.wordsFilter(line)
+                    if line in sentences :
+                        continue
+                    yield line
+
+        if not os.path.exists("datas/") :
+            return
+        if not os.path.exists("usedDatas") :
+            os.mkdir("usedDatas")
+        dataDir = os.listdir("datas")
+        usedDataDir = os.listdir("usedDatas")
+        for filename in dataDir :
+            self.currnetHandledFile = filename
+            if filename not in usedDataDir :
+                yield read(filename)
+            else:
+                yield read(filename,True)
+
+        # print(dataDir,usedDataDir)
+    
+    def wordsFilter(self,sentence):
+        sentence = re.sub(r'\d+\.\s+',"",sentence)
+        return sentence
+
+    def resetWidget(self):
+        self.verbListwidget.resetWidget()
+        self.conjunctionwidget.resetWidget()
+        self.verbTab.resetWidget()        
+        self.conjunctionTab.resetWidget()
+        self.conjunctionTab.addTab()
+        self.verbTab.addTab()
+        
+        # self.verbTab.getFocus()
 
 
 if __name__ == "__main__":

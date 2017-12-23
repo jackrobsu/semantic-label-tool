@@ -24,8 +24,14 @@ class VerbWidget(QMainWindow,QObject):
         controlcontents = []
         self.contentWidth = 150
         self.tagWidth = 40
-        (self.verb,self.verbContent) = addContent(self,'动词', controlcontents, 0 , self.textClickSignal,tagWidth=self.tagWidth,contentWidth=self.contentWidth)
-        controlcontents.append(None)
+        (self.verb,self.verbContent) = addContent(self,'动词', controlcontents, 0 , self.textClickSignal,tagWidth=self.tagWidth,contentWidth=self.contentWidth,noCheckBox=True,noTagTextEdit=True)
+        negation = QLabel(self)
+        negation.setText("否定形式")
+        self.negativeVerbCheckBox = CheckBoxForNegativeVerb(self,negation)
+        print(len(controlcontents))
+        controlcontents.append(self.negativeVerbCheckBox)
+        controlcontents.append(negation)
+
         # (self.role1,self.roleContent1) = addContent(self,'role1', controlcontents, 1 , self.textClickSignal,tagWidth=tagWidth,contentWidth=contentWidth)
         # (self.role2,self.roleContent2) = addContent(self,'role2', controlcontents, 2 , self.textClickSignal,tagWidth=tagWidth,contentWidth=contentWidth)
         # (self.role3,self.roleContent3) = addContent(self,'role3', controlcontents, 3 , self.textClickSignal,tagWidth=tagWidth,contentWidth=contentWidth)
@@ -162,12 +168,17 @@ class VerbWidget(QMainWindow,QObject):
         self.roleContents = {}
         self.curChoosedItemsInTreeWidget = []                      #用来保存当前TreeWidget中被选中的Items，用于翻页过程中的显示
         self.originVerb = None
+        self.isNegative = False
         self.defaultRole = "-"
 
         # self.pWidget.verbListwidget.itemDoubleClicked.connect()
 
     def showEvent(self,event):
+        self.getFocus()
+
+    def getFocus(self):
         textEditSelectionChanged(self,0,self.verbContent)
+        
 
     def _AddTableWithLabel(self,text,Container=None):
         '''
