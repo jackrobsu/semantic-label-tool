@@ -181,7 +181,7 @@ class CheckBox(QCheckBox):
             except Exception :
                 pass
             if self.num+1 < len(self.pWidget.allContents) :
-                textEditSelectionChanged(self.pWidget,self.num+1,getattr(self.pWidget,"roleContent"+str(self.num+1)))
+                textEditSelectionChanged(self.pWidget,self.num+1,getattr(self.pWidget,self.pWidget.allContents[self.num+1]))
             
     def addTagTextEdit(self,textedit):
         self.tagTextEdit = textedit
@@ -300,6 +300,9 @@ def addWordsToSelectedTextEdit(text,itemID):
     return False
 
 def textEditSelectionChanged(widgetObj,num, textobj):
+    '''
+        用于高亮某个标签，同时把焦点放到对应的文本框中
+    '''
     if not hasattr(widgetObj,"allLabels") or textobj is None :
         return
     if num == -1 :
@@ -447,6 +450,7 @@ def addItemToListWidget(ListWidget,lexicon):
     if item is not None :
         item.setText(lexicon.getFormatString())
         item.setLexiconID(lexicon.wordID)
+        print(lexicon.wordID+" grehr "+item.itemID)
     else:
         item = CommonListWidgetItem(lexicon.wordID)
         item.setText(lexicon.getFormatString())

@@ -49,7 +49,7 @@ class Lexicon():
         def getString(ID,text,existedIDs=[]):
             
             lexicon = searchLexiconByID(ID)
-            print("ID {} , searchID {} , lexicon {} , text {}".format(self.wordID,ID,lexicon,text))
+            print("In getFormatString, ID {} , searchID {} , lexicon {} , text {}".format(self.wordID,ID,lexicon,text))
             if lexicon is None :
                 return text
             if self.wordID in existedIDs :
@@ -96,7 +96,8 @@ class Lexicon():
 
     def getFormat(self,results={},IDs=[]):
         from singleInstance import searchLexiconByID
-
+        # print("jinru ",self)
+        # print("@@@@@@@@" , IDs , self.wordID in IDs)
         if self.wordID not in IDs :
             IDs.append(self.wordID)
         else:
@@ -117,6 +118,7 @@ class Lexicon():
                 lexicon = searchLexiconByID(role[2])
                 if lexicon is None :
                     continue
+                # print("roles ",lexicon.mainWord)
                 lexicon.getFormat(results,IDs)
         elif self.WType == WTYPE.CONJUNCTION :
             conjunction = "{}#{}".format(self.mainWord,self.wordID)
@@ -124,9 +126,14 @@ class Lexicon():
                 results['conjunction'][conjunction] = {"ID":self.wordID,"role":self.conjunctionRole,"word":self.mainWord}
             leftlexicon = searchLexiconByID(self.formerSentenceID)
             rightlexicon = searchLexiconByID(self.latterSentenceID)
+            # print("leftlexicon is ",leftlexicon)
+            # print("rightlexicon is ",rightlexicon)
+            
             if leftlexicon is not None :
+                # print("leftlexicon ",leftlexicon.mainWord)                
                 leftlexicon.getFormat(results,IDs)
             if rightlexicon is not None :
+                # print("rightlexicon ",rightlexicon.mainWord)
                 rightlexicon.getFormat(results,IDs)
         elif self.WType == WTYPE.CONSTANT :
             if self.isPronoun :

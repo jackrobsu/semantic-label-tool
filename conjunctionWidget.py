@@ -87,6 +87,7 @@ class ConjunctionWidget(QMainWindow,QObject):
         self.widgetType = WidgetType.CONJUNCTION
         self.widgetID = UnionID()
         self.conjunctionRole = None
+        # textEditSelectionChanged(self,0,self.conjunctionContent)
   
 
     def initializeVariables(self):
@@ -146,3 +147,6 @@ class ConjunctionWidget(QMainWindow,QObject):
             return
         self.conjunctionRole = {"role_ch-zh":selectedItem.text(0),"role":selectedItem.text(1)}
         # print(selectedItem.text(0),selectedItem.text(1))
+
+    def showEvent(self,event):
+        textEditSelectionChanged(self,0,self.conjunctionContent)

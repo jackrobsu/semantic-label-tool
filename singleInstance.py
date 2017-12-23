@@ -12,7 +12,7 @@ class SingleInstance(object):
 
     def getItem(self,ID):
         if ID in self.vocabs :
-            print(id(self.vocabs[ID]))
+            # print(id(self.vocabs[ID]))
             return self.vocabs[ID]
         else:
             return None
@@ -29,8 +29,6 @@ class SingleInstance(object):
             if w.wordID == ID :
                 return w
         return None
-    def A(self):
-        print(id(self.vocabs))
 
 class Verbs(SingleInstance):
     vocabs = {}

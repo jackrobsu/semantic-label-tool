@@ -148,6 +148,8 @@ class VerbWidget(QMainWindow,QObject):
         self.widgetType = WidgetType.VERB
         self.preButton.setEnabled(False)
         self.nextButton.setEnabled(False)
+
+        # textEditSelectionChanged(self,0,self.verbContent)
         
 
     def initializeVariables(self):
@@ -163,6 +165,9 @@ class VerbWidget(QMainWindow,QObject):
         self.defaultRole = "-"
 
         # self.pWidget.verbListwidget.itemDoubleClicked.connect()
+
+    def showEvent(self,event):
+        textEditSelectionChanged(self,0,self.verbContent)
 
     def _AddTableWithLabel(self,text,Container=None):
         '''
@@ -222,7 +227,7 @@ class VerbWidget(QMainWindow,QObject):
             for i , role in enumerate(Roles) :
                 getattr(self,"role{}".format(i+1)).setText(role)
             self.curChoosedItemsInTreeWidget = indexs
-
+            textEditSelectionChanged(self,1,getattr(self,"roleContent1"))
         if len(roles) <= self.roleNum :
             update()
         else:
@@ -275,22 +280,25 @@ class VerbWidget(QMainWindow,QObject):
         if verbs is not None and isinstance(verbs,set) and verbs :
             verbs = list(verbs)
             showContentInTableWidget(self.originVerbTable,verbs)
+            if len(verbs) == 1 :
+                self.SearchButtonClickEvent(True)
             # print(extractXML(verbs[0]))
         else:
             QMessageBox.warning(self,"警告",self.tr("没有找到动词 {} 可能的现在时态").format(verb),QMessageBox.Ok,QMessageBox.Ok)
             print("not found")
             
 
-    def SearchButtonClickEvent(self):
+    def SearchButtonClickEvent(self,directlyShow=False):
         flag = False
         verb = None
-        for table in self.lemmatizationWidget :
-            items = table.selectedItems()
-            if items is not None and items :
-                flag = True
-                verb = items[0].text().strip()
-    
-                break
+        if not directlyShow :
+            for table in self.lemmatizationWidget :
+                items = table.selectedItems()
+                if items is not None and items :
+                    flag = True
+                    verb = items[0].text().strip()
+        
+                    break
         if not flag and self.lemmatizationWidget :
             table = self.lemmatizationWidget[0]
             # table = QTableWidget()

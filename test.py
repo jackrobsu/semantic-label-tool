@@ -208,7 +208,6 @@ class MyApp(QMainWindow):
         #     selectedRoleContent.setText(s)
         
     def sureButtonClickedEvent(self):
-        print("press")
         listWindow = self.conjunctionwidget.listWindow
         count = listWindow.count()
         results = {}
@@ -216,16 +215,19 @@ class MyApp(QMainWindow):
         for index in range(count) :
             item = listWindow.item(index)
             lexicon = searchLexiconByID(item.itemID)
-            print("end")
+
+            print("string ",lexicon.getFormatString())
+            # continue
             if lexicon is None :
                 print("not found")
                 continue
-            lexicon.getFormat(results)
+            lexicon.getFormat(results,[])
             formalSentences.append(lexicon.getFormatString())
-        
+            
+        # print("results ",results)
         if results :
             results['formalSentences'] = formalSentences
-            print(results)
+            # print("results   ",results)
             writeFile(results)
 
     def tempSureButtonClickedEvent(self):
