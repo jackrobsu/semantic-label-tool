@@ -135,8 +135,9 @@ class ConjunctionWidget(QMainWindow,QObject):
                         if len(arr) == 2 :
                             self.conjunctionDict[curConjunction].append(tuple(arr))
         except Exception :
-            print("加载连词资源文件出错")
-            exit(0)
+            print("加载连词资源文件出错,可能不存在该文件")
+            QMessageBox.warning(self,"错误","加载连词资源文件出错，可能不存在该文件",QMessageBox.Ok,QMessageBox.Ok)
+            sys.exit(0)
 
             # print(self.conjunctionTypes)
             # print(self.conjunctionDict)

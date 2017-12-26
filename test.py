@@ -2,7 +2,7 @@
 import sys
 import os
 import re
-from PyQt5 import QtCore, QtGui, uic
+from PyQt5 import QtCore, QtGui
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import QMainWindow , QApplication , QPushButton , QTabWidget 
 from PyQt5.QtWidgets import *
@@ -14,7 +14,7 @@ from utilities import *
 from basicTabWidget import *
 from comListWidget import *
 from nounWidget import NounWidget
-import pandas as pd
+# import pandas as pd
 
 '''
     加载ui文件
@@ -37,7 +37,7 @@ class MyApp(QMainWindow):
         hbox = QVBoxLayout()
 
         #显示原始句子的Widght
-        self.sentenceshow = QTableWidget()
+        self.sentenceshow = QTableWidget(self)
         # cols = int(widgetWidth/defaultLength) - 1        
         # self.setTableWidgetColumns(self.sentenceshow,itemWidth=defaultLength)
         self.sentenceshow.setRowCount(rows)
@@ -58,7 +58,7 @@ class MyApp(QMainWindow):
         self.sentenceshow.setFixedHeight(100)
         # self.sentenceshow.addItem("dgagerr")
 
-        self.buttonAddSomeWords = QPushButton()
+        self.buttonAddSomeWords = QPushButton(self)
         self.buttonAddSomeWords.setText("确定")
         self.buttonAddSomeWords.clicked.connect(self.addSomeWords)
         self.buttonAddSomeWords.resize(self.buttonAddSomeWords.sizeHint())
@@ -91,7 +91,7 @@ class MyApp(QMainWindow):
         # self.typeGroups.addItem("garh")
 
         #用于设置动词、连词、介词、名词等相应内容的Widget
-        self.contentTabs = QTabWidget()
+        self.contentTabs = QTabWidget(self)
         
         self.verbTab = VerbTabWidget(self)
         self.conjunctionTab = ConjunctionTabWidget(self)
@@ -174,14 +174,11 @@ class MyApp(QMainWindow):
         self.move(qr.topLeft())
 
     def run(self):
+        
         self.currnetHandledFile = None
-        if not os.path.exists("res/sentenceFileMap.csv") :
-            self.multifiles = pd.DataFrame({"sentence":[],"hashFile":[]})
-        else:
-            self.multifiles = pd.read_csv("res/sentenceFileMap.csv",index_col=0)
-            # print(self.multifiles.loc[self.multifiles['hashFile']=="result/a.xml"]['sentence'].tolist())
-            
-        self.sentenceGenerator = self.readFile()      
+
+        self.sentenceGenerator = self.readFile()    
+
         try:    
             self.sentence = self.sentenceGenerator.__next__()
         except StopIteration :
@@ -268,20 +265,21 @@ class MyApp(QMainWindow):
             sentenceMD5 = hashlib.md5(self.currentSentence.encode("utf-8")).hexdigest()
             sentenceSHA1 = hashlib.sha1(self.currentSentence.encode("utf-8")).hexdigest()
             filename = "result/{}.xml".format(sentenceMD5 + sentenceSHA1)
-            flag = True
-            if filename not in self.multifiles['hashFile'].tolist() :
-                print("not exists")
-                pass
-            else:
-                if self.currentSentence in self.multifiles['sentence'].tolist() :
-                    filename = self.multifiles.loc[self.multifiles['sentence']==self.currentSentence]['hashFile'].tolist()[0]
-                    print("exists")
-                    flag = False
-                else:
-                    filename += str(int(time.time()))
-            if flag :
-                self.multifiles = self.multifiles.append(pd.Series({"sentence":self.currentSentence,"hashFile":filename}),ignore_index=True)
-                self.multifiles.to_csv("res/sentenceFileMap.csv")
+            # flag = True
+            # if filename not in self.multifiles['hashFile'].tolist() :
+            #     print("not exists")
+            #     pass
+            # else:
+            #     if self.currentSentence in self.multifiles['sentence'].tolist() :
+            #         filename = self.multifiles.loc[self.multifiles['sentence']==self.currentSentence]['hashFile'].tolist()[0]
+            #         print("exists")
+            #         flag = False
+            #     else:
+            #         filename += str(int(time.time()))
+            # if flag :
+            #     self.multifiles = self.multifiles.append(pd.Series({"sentence":self.currentSentence,"hashFile":filename}),ignore_index=True)
+            #     self.multifiles.to_csv("res/sentenceFileMap.csv")
+            self.checkDefault(filename)
             # print("results   ",results)
             results['filename'] = filename
             writeFile(results)
@@ -289,8 +287,45 @@ class MyApp(QMainWindow):
         else:
             QMessageBox.warning(self,"警告","您还没有选择将要保存的连词语义表示",QMessageBox.Ok,QMessageBox.Ok)
 
+    def checkUsingPandas(self,filename):
+        flag = True
+        if filename not in self.multifiles['hashFile'].tolist() :
+            print("not exists")
+            pass
+        else:
+            if self.currentSentence in self.multifiles['sentence'].tolist() :
+                filename = self.multifiles.loc[self.multifiles['sentence']==self.currentSentence]['hashFile'].tolist()[0]
+                print("exists")
+                flag = False
+            else:
+                filename += str(int(time.time()))
+        if flag :
+            self.multifiles = self.multifiles.append(pd.Series({"sentence":self.currentSentence,"hashFile":filename}),ignore_index=True)
+            self.multifiles.to_csv("res/sentenceFileMap.csv")
+
+    def checkDefault(self,filename):
+        flag = True
+        if filename not in self.multifiles['hashFile'] :
+            print("not exists")
+            pass
+        else:
+            if self.currentSentence in self.multifiles['sentence'] :
+                index = self.multifiles['sentence'].index(self.currentSentence)
+                filename = self.multifiles['hashFile'][index]
+                print("exists")
+                flag = False
+            else:
+                filename += str(int(time.time()))
+        if flag :
+            self.multifiles['sentence'] = self.currentSentence
+            self.multifiles['hashFile'] = filename
+            open(self.sentenceFilePair,'a+').write(self.currentSentence+"\t"+filename+"\n")
+
     def tempSureButtonClickedEvent(self):
-        pass
+        if self.currentSentence not in self.sentencesNotSure :
+            self.sentencesNotSure.append(self.currentSentence)
+            open(self.notsureFile,'a+').write(self.currentSentence+"\n")
+        self.nextButtonClickedEvent()
 
     def nextButtonClickedEvent(self):
         try:
@@ -318,7 +353,7 @@ class MyApp(QMainWindow):
                 for line in f :
                     line = line.strip()
                     line = self.wordsFilter(line)
-                    if line in sentences :
+                    if line in sentences or line in self.sentencesNotSure :
                         continue
                     yield line
 
@@ -330,6 +365,7 @@ class MyApp(QMainWindow):
         usedDataDir = os.listdir("usedDatas")
         for filename in dataDir :
             self.currnetHandledFile = filename
+            self.resetResFile()
             if filename not in usedDataDir :
                 yield read(filename)
             else:
@@ -341,6 +377,58 @@ class MyApp(QMainWindow):
         sentence = re.sub(r'\d+\.\s+',"",sentence)
         return sentence
 
+    def resetResFile(self):
+
+        def readSentenceFileMap(filename):
+            try:
+                with open(filename,'r') as f :
+                    contents = {'sentence':[],"hashFile":[]}
+                    for line in f :
+                        arr = line.strip().split("\t")
+                        contents['sentence'].append(arr[0])
+                        contents['hashFile'].append(arr[1])
+                    
+                    return contents
+            except Exception :
+                QMessageBox.warning(self,"警告","读取配置文件出错")
+                traceback.print_exc()
+
+        def read(filename):
+            try:
+                with open(filename,'r') as f :
+                    contents = []
+                    for line in f :
+                        contents.append(line.strip())
+                    return contents
+            except Exception :
+                QMessageBox.warning(self,"警告","读取配置文件出错")
+                traceback.print_exc()
+                    
+        filename = re.sub(r'\.txt',"",self.currnetHandledFile)
+
+        # filename = "res/sentenceFileMap.csv"
+        # filename = "res/sentenceFileMap.txt"
+        self.sentenceFilePair = "res/{}_sentence_file_pair.txt".format(filename)
+        if not os.path.exists(self.sentenceFilePair) :
+            # self.multifiles = pd.DataFrame({"sentence":[],"hashFile":[]})
+            self.multifiles = {"sentence":[],"hashFile":[]}
+        else:
+            # self.multifiles = pd.read_csv(filename,index_col=0)
+            self.multifiles = readSentenceFileMap(self.sentenceFilePair)
+        # print(self.multifiles)
+            # print(self.multifiles.loc[self.multifiles['hashFile']=="result/a.xml"]['sentence'].tolist())
+
+                    
+        self.notsureFile = "res/{}_notsure.txt".format(filename)
+        if not os.path.exists(self.notsureFile) :
+            self.sentencesNotSure = []
+        else:
+            self.sentencesNotSure = read(self.notsureFile)  
+        # print(self.sentencesNotSure)
+
+
+
+
     def resetWidget(self):
         self.verbListwidget.resetWidget()
         self.conjunctionwidget.resetWidget()
@@ -348,7 +436,7 @@ class MyApp(QMainWindow):
         self.conjunctionTab.resetWidget()
         self.conjunctionTab.addTab()
         self.verbTab.addTab()
-        
+        self.contentTabs.setCurrentIndex(0)
         # self.verbTab.getFocus()
 
 
