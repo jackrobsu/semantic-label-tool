@@ -45,13 +45,13 @@ class ConjunctionWidget(QMainWindow,QObject):
             添加标签和文本输入框
         '''
         controlContents = []
-        self.conjunctionLabel , self.conjunctionContent = addContent(self,"连词",controlcontents=controlContents,num=0,signal=self.textClickSignal)
+        self.conjunctionLabel , self.conjunctionContent = addContent(self,"连词",controlcontents=controlContents,num=0,signal=self.textClickSignal,tagWidth=50)
         # self.conjunctionRoleLabel , self.conjunctionRoleContent = addContent(self,"语义角色",controlcontents=controlContents,num=1,signal=self.textClickSignal,tagWidth=50)
        
-        self.leftSentenceLabel , self.leftSentenceContent , self.leftRefTag= addContent(self,"子句1",controlcontents=controlContents,num=1,signal=self.textClickSignal,checkBoxHidden=False,needTagTextEdit=True)
+        self.leftSentenceLabel , self.leftSentenceContent , self.leftRefTag= addContent(self,"子句1",controlcontents=controlContents,num=1,signal=self.textClickSignal,tagWidth=50,checkBoxHidden=False,needTagTextEdit=True)
         # self.addPadding(controlContents,3)
         # self.leftSentenceRoleLabel , self.leftSentenceRoleContent = addContent(self,"语义角色",controlcontents=controlContents,num=2,signal=self.textClickSignal,tagWidth=50)
-        self.rightSentenceLabel , self.rightSentenceContent , self.rightRefTag = addContent(self,"子句2",controlcontents=controlContents,num=2,signal=self.textClickSignal,checkBoxHidden=False,needTagTextEdit=True)
+        self.rightSentenceLabel , self.rightSentenceContent , self.rightRefTag = addContent(self,"子句2",controlcontents=controlContents,num=2,signal=self.textClickSignal,tagWidth=50,checkBoxHidden=False,needTagTextEdit=True)
         # self.addPadding(controlContents,3)
         # self.rightSentenceRoleLabel , self.rightSentenceRoleContent = addContent(self,"语义角色",controlcontents=controlContents,num=4,signal=self.textClickSignal,tagWidth=50)
         self.allLabels = ['conjunctionLabel', 'leftSentenceLabel', 'rightSentenceLabel']
@@ -114,9 +114,16 @@ class ConjunctionWidget(QMainWindow,QObject):
         self.tree = Tree(self.rightWindow,self,mutexAnyItem=True,callback=self.callback)
         self.tree.setMinimumWidth(self.rightWindow.width())
         self.tree.setMinimumHeight(self.rightWindow.height())
+        self.tree.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Preferred)  
+
         self.trees.append(self.tree)
         self.parseConjunctionFile()
         self.tree.addTreeRoots(self.conjunctionTypes,self.conjunctionDict)
+
+    def resizeEvent(self,event):
+        self.tree.setMinimumWidth(self.rightWindow.width())
+        self.tree.setMinimumHeight(self.rightWindow.height())
+
 
     def parseConjunctionFile(self):
         filename = "res/conjunction.txt"

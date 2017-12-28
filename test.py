@@ -33,11 +33,11 @@ class MyApp(QMainWindow):
         self.MainWindowWidth = 1000
         lenghtOfWord = 10
         defaultLength = 100
-        sentencewidget = QWidget()
+        self.sentencewidget = QWidget()
         hbox = QVBoxLayout()
 
         #显示原始句子的Widght
-        self.sentenceshow = QTableWidget(self)
+        self.sentenceshow = CommonTabWidget(self)
         # cols = int(widgetWidth/defaultLength) - 1        
         # self.setTableWidgetColumns(self.sentenceshow,itemWidth=defaultLength)
         self.sentenceshow.setRowCount(rows)
@@ -46,6 +46,8 @@ class MyApp(QMainWindow):
         
         self.sentenceshow.setSelectionMode(QAbstractItemView.MultiSelection)
         self.sentenceshow.setShowGrid(False)
+        self.sentenceshow.doubleClicked.connect(self.doubleClickedOnTableWidget)
+        
         # self.sentenceshow.columnWidth(defaultLength)
         # self.sentenceshow.setItem(0,0,QTableWidgetItem("dgaghrehrehreherherheeheherher"))
 
@@ -55,7 +57,7 @@ class MyApp(QMainWindow):
         self.sentenceshow.resizeColumnsToContents()
         self.sentenceshow.setEditTriggers(QAbstractItemView.NoEditTriggers)
         # self.sentenceshow.resize(self.MainWindowWidth,150)
-        self.sentenceshow.setFixedHeight(100)
+        self.sentenceshow.setMinimumHeight(100)
         # self.sentenceshow.addItem("dgagerr")
 
         self.buttonAddSomeWords = QPushButton(self)
@@ -64,8 +66,8 @@ class MyApp(QMainWindow):
         self.buttonAddSomeWords.resize(self.buttonAddSomeWords.sizeHint())
         hbox.addWidget(self.sentenceshow)
         hbox.addWidget(self.buttonAddSomeWords)
-        sentencewidget.setLayout(hbox)
-        sentencewidget.resize(self.MainWindowWidth,300)
+        self.sentencewidget.setLayout(hbox)
+        self.sentencewidget.resize(self.MainWindowWidth,300)
 
         #显示已生成的短语的Widget
         self.typeGroupssplitter = QSplitter(Qt.Horizontal)
@@ -119,7 +121,7 @@ class MyApp(QMainWindow):
         
 
         self.verticalSplitter = QSplitter(Qt.Vertical)
-        self.verticalSplitter.addWidget(sentencewidget)
+        self.verticalSplitter.addWidget(self.sentencewidget)
         self.verticalSplitter.addWidget(self.typeGroupssplitter)
         self.verticalSplitter.addWidget(self.contentTabs)
         self.verticalSplitter.addWidget(addWidgetInHBoxLayout([self.tempSureButton,self.sureButton,self.nextButton],True))
@@ -163,7 +165,7 @@ class MyApp(QMainWindow):
         # self.setGeometry(300,300,300,150)
         self.resize(self.MainWindowWidth,700)
         self.center()
-        self.setWindowFlags(Qt.WindowMinimizeButtonHint|Qt.WindowCloseButtonHint)
+        # self.setWindowFlags(Qt.WindowMinimizeButtonHint|Qt.WindowCloseButtonHint)
         self.show()
         self.run()
 
@@ -203,7 +205,10 @@ class MyApp(QMainWindow):
                 items.append(diff)
 
         setColumns(items)
-            
+
+    def resizeEvent(self,event):
+        self.sentenceshow.resize(self.sentencewidget.width(),self.sentencewidget.height()*0.8) 
+
     def showSentence(self,sentence=None):
         # row = 0
         # col = 0
@@ -219,13 +224,19 @@ class MyApp(QMainWindow):
             showContentInTableWidget(self.sentenceshow,sentence.split(" "))
 
                 
-        
-
-    def addSomeWords(self):
+    def getSelectedWords(self):
+        s = ""
         items = self.sentenceshow.selectedItems()
         items = sorted(items,key=lambda x : ( x.row(),x.column() ))
-        s = "_".join([ item.text().strip() for item in items ])
-        s = s.replace(",","").replace(".","").replace("?","")
+        if items :
+            s = "_".join([ item.text().strip() for item in items ])
+            s = s.replace(",","").replace(".","").replace("?","")       
+        return s
+
+    def addSomeWords(self):
+        s = self.getSelectedWords()
+        if s == "" :
+            return
         isSelected = addWordsToSelectedTextEdit(s,CONSTANT.noItemID)
         if isSelected :
             self.sentenceshow.clearSelection()
@@ -233,6 +244,9 @@ class MyApp(QMainWindow):
         # selectedRoleContent = messagecontainer.getMessage("selectedRoleContent")
         # if selectedRoleContent is not None :
         #     selectedRoleContent.setText(s)
+
+    def doubleClickedOnTableWidget(self):
+        self.addSomeWords()
         
     def sureButtonClickedEvent(self):
         listWindow = self.conjunctionwidget.listWindow

@@ -41,6 +41,72 @@ class CommonTextEdit(QTextEdit):
     def setLexiconID(self,ID):
         self.lexiconID = ID
 
+class CommonTabWidget(QTableWidget):
+    def __init__(self,pApp):
+        super().__init__(pApp)
+        self.pApp = pApp
+
+    def contextMenuEvent(self,event):
+        menu = QMenu(self)
+        add = QAction()
+        add.setText("选中")
+        add.triggered.connect(self.pApp.addSomeWords)
+        copyAction = QAction()
+        copyAction.setText("复制")
+        copyAction.triggered.connect(self.CopyAction)
+        clear = QAction()
+        clear.setText("清除选中项")
+        clear.triggered.connect(self.Clear)
+
+        menu.addAction(add)
+        menu.addAction(copyAction)        
+        menu.addAction(clear)
+        menu.exec_(QtGui.QCursor.pos())
+
+    def CopyAction(self):
+        clipboard = QApplication.clipboard()
+        clipboard.setText(self.pApp.getSelectedWords())
+
+    def Clear(self):
+        self.clearSelection()
+
+class OriginVerbTableWidget(QTableWidget):
+    def __init__(self,pApp):
+        super().__init__(pApp)
+        self.pApp = pApp
+
+    def contextMenuEvent(self,event):
+        menu = QMenu(self)
+        add = QAction()
+        add.setText("查找")
+        add.triggered.connect(self.pApp.SearchButtonClickEvent)
+        copyAction = QAction()
+        copyAction.setText("复制")
+        copyAction.triggered.connect(self.CopyAction)
+        clear = QAction()
+        clear.setText("清除选中项")
+        clear.triggered.connect(self.Clear)
+        
+        menu.addAction(add)
+        menu.addAction(copyAction)        
+        menu.addAction(clear)
+        menu.exec_(QtGui.QCursor.pos())
+
+
+    def CopyAction(self):
+        clipboard = QApplication.clipboard()
+        items = self.selectedItems()
+        if not items :
+            return
+        try:
+            clipboard.setText(items[0].text())
+        except Exception:
+            pass
+
+    def Clear(self):
+        self.clearSelection()
+
+
 class SignalWithHandleButton(QPushButton):
     def __init__(self,signal,connectedWidget):
         super().__init__()
@@ -130,6 +196,17 @@ class CommonListWidget(QListWidget):
                 tabwidget.setCurrentWidget(tabshow)
             except Exception :
                 traceback.print_exc()
+
+    def contextMenuEvent(self,event):
+        menu = QMenu(self)
+        action = QAction()
+        action.setText("选中")
+        action.triggered.connect(self.actionClicked)
+        menu.addAction(action)
+        menu.exec_(QtGui.QCursor.pos())
+
+    def actionClicked(self,event):
+        TextAddThroughWidget(self)
             
 class CheckBox(QCheckBox):
     def __init__(self,pWidget,textedit,tagTextEdit=None,num=-1):
@@ -273,8 +350,8 @@ def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=
     else:
         reftag = CommonTextEdit(obj,signal, -1)
     reftag.setEnabled(False)
-    reftag.setFixedWidth(50)
-    reftag.setFixedHeight(30)
+    reftag.setMaximumWidth(150)
+    reftag.setMaximumHeight(40)
     if not noCheckBox :
         checkbox.addTagTextEdit(reftag)
 
@@ -320,6 +397,8 @@ def addWordsToSelectedTextEdit(text,itemID):
         nextRoleLabelNum = messagecontainer.getMessage("nextRoleLableNum")
         curWidget = messagecontainer.getMessage("curWidget")
         if nextRoleLabelNum is not None and curWidget is not None :
+            print("jinlaile",nextRoleLabelNum,len(curWidget.allContents))
+            print(curWidget.allContents)
             if nextRoleLabelNum < len(curWidget.allContents) :
                 textobj = getattr(curWidget,curWidget.allContents[nextRoleLabelNum])
                 # curWidget.focusNextChild()
@@ -350,13 +429,25 @@ def textEditSelectionChanged(widgetObj,num, textobj):
             obj.setStyleSheet('color:green;')
             widgetObj.selectedRoleContent = textobj
             messagecontainer = MessageContainer()
-            messagecontainer.setMessage("selectedRoleContent",textobj)
+            # messagecontainer.setMessage("selectedRoleContent",textobj)
+            # messagecontainer.setMessage("curWidget",widgetObj)
+            
             print("textobj ",textobj)
 
             if i < len(widgetObj.allLabels) - 1 :
                 messagecontainer.setMessage("nextRoleLableNum",i+1)
                 messagecontainer.setMessage("curWidget",widgetObj)
+                messagecontainer.setMessage("selectedRoleContent",textobj)
+                
+                print("set nextRoleLabelNum {} in {}".format(i+1,widgetObj))
                 # messagecontainer.setMessage("nextRoleContent",widgetObj.allContents[i+1])
+            else:
+                messagecontainer.setMessage("nextRoleLableNum",i)
+                messagecontainer.setMessage("curWidget",widgetObj)
+                messagecontainer.setMessage("selectedRoleContent",textobj)
+                
+                print("set nextRoleLabelNum {} in {}".format(i,widgetObj))
+                
             continue
         obj.setStyleSheet('color:black')
 
@@ -496,15 +587,35 @@ def tabAdd(tabWidget):
     '''
         添加标签页,参数tabWidget一般是主页面，即它的tabWindow对象才是QTabWidget
     '''
+
+    def Add(tabobj,tab,string):
+        tabobj.addTab(tab,string)
+
+    def remove(tabobj,index=-1):
+        if tabobj.count() == 0 :
+            return
+        if index == -1 or index >= tabobj.count() :
+            tabobj.removeTab(tabobj.count()-1)
+        else:
+            tabobj.removeTab(index)
+        
+
     from verbWidget import VerbWidget
     from conjunctionWidget import ConjunctionWidget
     print("add")
+    remove(tabWidget.tabWindow)
+    showWidget = None
     if tabWidget.widgetType == WidgetType.VERB :
-        tabWidget.tabWindow.addTab(VerbWidget(tabWidget.pWidget),tabWidget.defaultTab)
+        showWidget = VerbWidget(tabWidget.pWidget,tabWidget.tabWindow.count())
+        tabWidget.tabWindow.addTab(showWidget,tabWidget.defaultTab)
+        Add(tabWidget.tabWindow,QWidget(),"+")
+        
     elif tabWidget.widgetType == WidgetType.CONJUNCTION :
         tabWidget.tabWindow.addTab(ConjunctionWidget(tabWidget.pWidget),tabWidget.defaultTab)
-        
-    tabWidget.tabWindow.setCurrentIndex(tabWidget.tabWindow.count()-1)
+        Add(tabWidget.tabWindow,QWidget(),"+")
+    
+    tabWidget.tabWindow.setCurrentIndex(tabWidget.tabWindow.count()-2)
+
 
 
 def getButton(text,width=None,height=None,event=None):

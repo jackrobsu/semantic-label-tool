@@ -32,16 +32,19 @@ class BasicTabWidget(QMainWindow):
         self.vboxOfLeftWindow.addStretch(1)
         
         self.leftWindow.setLayout(self.vboxOfLeftWindow)
+        self.leftWindow.setHidden(True)  #暂时隐藏
+
 
         self.rightWindow = QTabWidget()
         self.defaultTab = "未命名标签"
-        if self.widgetType == WidgetType.VERB :
-            self.rightWindow.addTab(VerbWidget(self.pWidget),self.defaultTab)
-        elif self.widgetType == WidgetType.CONJUNCTION :
-            self.rightWindow.addTab(ConjunctionWidget(self.pWidget),self.defaultTab)
-        elif self.widgetType == WidgetType.NOUN :
-            self.rightWindow.addTab(NounWidget(self.pWidget),self.defaultTab)
-            
+        # if self.widgetType == WidgetType.VERB :
+        #     self.rightWindow.addTab(VerbWidget(self.pWidget),self.defaultTab)
+        # elif self.widgetType == WidgetType.CONJUNCTION :
+        #     self.rightWindow.addTab(ConjunctionWidget(self.pWidget),self.defaultTab)
+        # elif self.widgetType == WidgetType.NOUN :
+        #     self.rightWindow.addTab(NounWidget(self.pWidget),self.defaultTab)
+        
+
             
 
         self.tabWindow = self.rightWindow
@@ -60,12 +63,42 @@ class BasicTabWidget(QMainWindow):
     def addTab(self):
         tabAdd(self)
 
+class CommonTabBar(QTabBar):
+    def __init__(self,pWidget):
+        super().__init__()
+        self.pWidget = pWidget
+
+    def mousePressEvent(self,event):
+        tabid = self.tabAt(event.pos())
+        if tabid == self.pWidget.tabWindow.count() - 1 :
+            self.pWidget.addTab()
+            # super().mousePressEvent(event)
+            
+        else:
+            print(tabid)
+            super().mousePressEvent(event)
+
+    def mouseDoubleClickEvent(self,event):
+        '''
+            双击关闭标签页
+        '''
+        tabid = self.tabAt(event.pos())
+        if tabid == self.pWidget.tabWindow.count() - 1 :
+            super().mouseDoubleClickEvent(event)
+        else:
+            self.pWidget.tabWindow.removeTab(tabid)
+    
+
 class VerbTabWidget(BasicTabWidget):
     def __init__(self,pWidget):
         super(VerbTabWidget,self).__init__(pWidget,WidgetType.VERB)
-    
+        self.tabWindow.setTabBar(CommonTabBar(self))
+        # self.tabWindow.setTabsClosable(True)
+        self.tabWindow.setCurrentIndex(0)
+
 
 
 class ConjunctionTabWidget(BasicTabWidget) :
     def __init__(self,pWidget):
         super(ConjunctionTabWidget,self).__init__(pWidget,WidgetType.CONJUNCTION)
+        self.tabWindow.setTabBar(CommonTabBar(self))

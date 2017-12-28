@@ -10,16 +10,16 @@ class VerbWidget(QMainWindow,QObject):
     textClickSignal = pyqtSignal(QWidget, int, CommonTextEdit)
     saverButtonSignal = pyqtSignal(QWidget,QWidget,QWidget)
     roleChoiceSingnal = pyqtSignal(list,list)
-    def __init__(self,pWidget):
+    def __init__(self,pWidget,tabIndex=0):
         super().__init__()
         self.pWidget = pWidget
-
+        self.tabIndex = tabIndex
         self.initializeVariables()
 
         #==========================================leftWindow========================================
         
         self.leftWindow = QWidget()
-        self.lemmatization = getButton("词形还原")
+        self.lemmatization = getButton("动词原形")
         self.lemmatization.clicked.connect(self.lemmatizationButtonClickEvent)
         controlcontents = []
         self.contentWidth = 150
@@ -41,6 +41,7 @@ class VerbWidget(QMainWindow,QObject):
         self.allContents = ['verbContent']
         self.allRefTags = ['tag']
         self.addRoleContent(self.roleNum,self.allLabels,self.allContents,controlcontents)
+        print("allcontents",len(self.allContents))
         # roles = range(self.roleNum)
         # for rolenum in roles :
         #     rolename = "role{}".format(rolenum+1)
@@ -84,16 +85,17 @@ class VerbWidget(QMainWindow,QObject):
         # self.VerbesWidget , self.VerbesLabel , self.VerbesTable = self._AddTableWithLabel("按第三人称",self.lemmatizationWidget)
         
 
-        self.searchButton = getButton("查找")
-        self.searchButton.clicked.connect(self.SearchButtonClickEvent)
+        # self.searchButton = getButton("查找")
+        # self.searchButton.clicked.connect(self.SearchButtonClickEvent)
         
-        vws = []
-        vws.append(self.originVerbWidget)
+        # vws = []
+        # vws.append(self.originVerbWidget)
         # vws.append(self.VerbingWidget)
         # vws.append(self.pastVerbWidget)
         # vws.append(self.VerbesWidget)
-        vws.append(self.searchButton)
-        self.middleWindow.setLayout(self._addWidgetInVBoxLayout(vws))
+        # vws.append(self.searchButton)
+        self.middleWindow.setLayout(self._addWidgetInVBoxLayout([self.originVerbLabel , self.originVerbTable]))
+        
         middleWindowWidth = self.width() / 4
 
         #==========================================rightWindow==============================================        
@@ -140,6 +142,8 @@ class VerbWidget(QMainWindow,QObject):
         self.setCentralWidget(self.hsplitter)
         self.resize(self.sizeHint())
         self.initialize()
+        print("allcontents",len(self.allContents))
+        
         self.show()
 
     def getContent(self):
@@ -174,7 +178,12 @@ class VerbWidget(QMainWindow,QObject):
         # self.pWidget.verbListwidget.itemDoubleClicked.connect()
 
     def showEvent(self,event):
+        print("tabindex ",self.tabIndex)
         self.getFocus()
+
+    # def paintEvent(self,event):
+    #     print("tabindex ",self.tabIndex)
+    #     self.getFocus()
 
     def getFocus(self):
         textEditSelectionChanged(self,0,self.verbContent)
@@ -189,20 +198,23 @@ class VerbWidget(QMainWindow,QObject):
         label = QLabel()
         label.setText(text)
         label.setFixedWidth(70)
-        table = QTableWidget()
+        table = OriginVerbTableWidget(self)
         table.setRowCount(1)
         table.setColumnCount(20)
+        table.setMaximumHeight(55)
         table.resizeRowsToContents()
         table.resizeColumnsToContents()
         table.setSelectionMode(QAbstractItemView.SingleSelection)
         table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         table.setShowGrid(False)
+        table.doubleClicked.connect(self.SearchButtonClickEvent)
         
         hbox = QHBoxLayout()
         hbox.addWidget(label)
         hbox.addWidget(table)
         widget.setLayout(hbox)
-        widget.setFixedHeight(70)
+        widget.setMaximumHeight(150)
+        widget.setMinimumHeight(table.height()*2)
         if Container is not None :
             Container.append(table)
         return widget , label , table
@@ -292,23 +304,25 @@ class VerbWidget(QMainWindow,QObject):
             verbs = list(verbs)
             showContentInTableWidget(self.originVerbTable,verbs)
             if len(verbs) == 1 :
-                self.SearchButtonClickEvent(True)
+                self.SearchButtonClickEvent(directlyShow=True)
             # print(extractXML(verbs[0]))
         else:
             QMessageBox.warning(self,"警告",self.tr("没有找到动词 {} 可能的现在时态").format(verb),QMessageBox.Ok,QMessageBox.Ok)
             print("not found")
             
 
-    def SearchButtonClickEvent(self,directlyShow=False):
+    def SearchButtonClickEvent(self,event=None,directlyShow=False):
+        '''
+            directlyShow: 如果True，则表示默认选择第一个为查找对象
+        '''
         flag = False
         verb = None
-        if not directlyShow :
+        if not directlyShow or event is not None :
             for table in self.lemmatizationWidget :
                 items = table.selectedItems()
                 if items is not None and items :
                     flag = True
                     verb = items[0].text().strip()
-        
                     break
         if not flag and self.lemmatizationWidget :
             table = self.lemmatizationWidget[0]
@@ -318,6 +332,7 @@ class VerbWidget(QMainWindow,QObject):
                 verb = item.text().strip()
         if verb is None or verb == "" :
             return
+        print(verb)
         self.originVerb = verb
         verbroles = extractXML(verb)
         if verbroles :

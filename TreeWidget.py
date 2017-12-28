@@ -15,7 +15,8 @@ class Tree(QTreeWidget):
         super(Tree, self).__init__(parent)  
         self.mainWindow = mainWindow
         self.setMinimumWidth(200)  
-        self.setMinimumHeight(200)  
+        self.setMinimumHeight(200)
+        # self.resize(self.sizeHint())
         self.setColumnCount(2)
         #设置头部信息，因为上面设置列数为2，所以要设置两个标识符
         self.setHeaderLabels(['Verb','Description'])
