@@ -20,12 +20,22 @@ class Lexicon():
         WTYPE.PRONOUN:"Pronoun",
         WTYPE.CONSTANT:"Constant"
     }
-    def __init__(self,wordID,wtype,mainWord,roles={}):
+    def __init__(self,wordID,wtype,mainWord,roles={},indexOfPlace=None):
         self.WType = wtype
         self.mainWord = mainWord
         self.roles = roles
         self.wordID = wordID
 
+        #原句中的位置，如果是多个词构成的，则用第一个单词在原句中的位置来表示
+        self.indexOfPlace = indexOfPlace
+        #表示在连词中的位置，只有当该词多短语属于连词的某一成分时有效
+        self.indexInConjunction = None
+        #属于哪个词或短语
+        self.belong = None
+        
+        #与belong属性连用
+        self.isleft = None
+        
         #for verb
         self.originVerb = None
         self.isNegative = False
@@ -116,9 +126,9 @@ class Lexicon():
         if self.WType == WTYPE.VERB :
             verb = "{}#{}".format(self.mainWord,self.wordID)
             if self.mainWord not in results['verb'] :
-                results['verb'][verb] = {"ID":self.wordID,"roles":[],"word":self.mainWord,"originVerb":self.originVerb}
+                results['verb'][verb] = {"ID":self.wordID,"roles":[],"word":self.mainWord,"originVerb":self.originVerb,"indexOfPlace":self.indexOfPlace,"belong":self.belong,"isleft":self.isleft}
             for role in self.roles :
-                results['verb'][verb]['roles'].append(role[0])
+                results['verb'][verb]['roles'].append((role[0],role[1]))
             for role in self.roles :
                 lexicon = searchLexiconByID(role[2])
                 if lexicon is None :
@@ -128,7 +138,7 @@ class Lexicon():
         elif self.WType == WTYPE.CONJUNCTION :
             conjunction = "{}#{}".format(self.mainWord,self.wordID)
             if conjunction not in results['conjunction'] :
-                results['conjunction'][conjunction] = {"ID":self.wordID,"role":self.conjunctionRole,"word":self.mainWord}
+                results['conjunction'][conjunction] = {"ID":self.wordID,"role":self.conjunctionRole,"word":self.mainWord,"indexOfPlace":self.indexOfPlace,"belong":self.belong,"isleft":self.isleft}
             leftlexicon = searchLexiconByID(self.formerSentenceID)
             rightlexicon = searchLexiconByID(self.latterSentenceID)
             # print("leftlexicon is ",leftlexicon)
@@ -144,7 +154,7 @@ class Lexicon():
             if self.isPronoun :
                 pronoun = "{}#{}".format(self.mainWord,self.wordID)
                 if pronoun not in results['variable'] :
-                    results['variable'][pronoun] = {"ID":self.wordID,"word":self.mainWord,"ref":self.ref}
+                    results['variable'][pronoun] = {"ID":self.wordID,"word":self.mainWord,"ref":self.ref,"indexOfPlace":self.indexOfPlace,"belong":self.belong}
         else:
             return
                 

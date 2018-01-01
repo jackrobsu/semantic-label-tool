@@ -60,8 +60,8 @@ class BasicTabWidget(QMainWindow):
     def resetWidget(self):
         self.tabWindow.clear()
         # pass
-    def addTab(self):
-        tabAdd(self)
+    def addTab(self,widget=None):
+        tabAdd(self,widget)
 
 class CommonTabBar(QTabBar):
     def __init__(self,pWidget):
@@ -87,6 +87,10 @@ class CommonTabBar(QTabBar):
             super().mouseDoubleClickEvent(event)
         else:
             self.pWidget.tabWindow.removeTab(tabid)
+            if self.pWidget.tabWindow.count() == 1 :
+                tabAdd(self.pWidget)
+            else:
+                self.pWidget.tabWindow.setCurrentIndex(self.pWidget.tabWindow.count()-2)
     
 
 class VerbTabWidget(BasicTabWidget):

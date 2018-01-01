@@ -34,6 +34,8 @@ class CommonTextEdit(QTextEdit):
 
         #与文本框对应的词条ID
         self.lexiconID = None
+        #单词在原句中的位置
+        self.indexOfPlace = None
 
     def mousePressEvent(self, event):
         self.signal.emit(self.dependencyObj,self.num,self)
@@ -41,7 +43,10 @@ class CommonTextEdit(QTextEdit):
     def setLexiconID(self,ID):
         self.lexiconID = ID
 
-class CommonTabWidget(QTableWidget):
+    def setIndexOfPlace(self,index):
+        self.indexOfPlace = index
+
+class CommonTableWidget(QTableWidget):
     def __init__(self,pApp):
         super().__init__(pApp)
         self.pApp = pApp
@@ -150,11 +155,15 @@ class CommonListWidgetItem(QListWidgetItem) :
         用来显示已经保存的短语或词等
         itemID:是与词条对应的ID，用来查找相应的词条以获取更多信息
     '''
-    def __init__(self,itemID,needCheckState=False):
+    def __init__(self,itemID,needCheckState=False,belong=None,isleft=None):
         super().__init__()
         self.itemID = itemID
         if needCheckState :
             self.setCheckState(Qt.Unchecked)
+
+        
+        self.belong = belong
+        self.isleft = isleft
 
     def setLexiconID(self,ID):
         self.itemID = ID
@@ -162,17 +171,27 @@ class CommonListWidgetItem(QListWidgetItem) :
     def setItemID(self,ID):
         self.itemID = ID
 
+    def setBelong(self,belong):
+        self.belong = belong
+        print("belong ",belong)
+            
+    def setIsLeft(self,isleft):
+        self.isleft = isleft
+
 class CommonListWidget(QListWidget):
     '''
         pWidget : 该Widget所属的Widget
     '''
-    def __init__(self,pWidget,widget):
+    def __init__(self,pWidget,widget,belong=None,isleft=None):
         '''
             widget:对应的TabWidget在pWidget中的属性名，如verbListwidget对应verbTab
         '''
         super().__init__()
         self.pWidget = pWidget
         self.widget = widget
+
+        self.belong = belong
+        self.isleft = isleft
 
     def mouseDoubleClickEvent(self,event):
         # self.signal.emit()
@@ -207,7 +226,9 @@ class CommonListWidget(QListWidget):
 
     def actionClicked(self,event):
         TextAddThroughWidget(self)
-            
+
+   
+
 class CheckBox(QCheckBox):
     def __init__(self,pWidget,textedit,tagTextEdit=None,num=-1):
         '''
@@ -375,7 +396,7 @@ def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=
     else:
         return tag, content         
 
-def addWordsToSelectedTextEdit(text,itemID):
+def addWordsToSelectedTextEdit(text,itemID,indexOfPlace=None):
     '''
         用于把选中的一些词送入被选中的文本编辑框中，一般通过“确定”按钮触发
     '''
@@ -385,10 +406,12 @@ def addWordsToSelectedTextEdit(text,itemID):
     if selectedRoleContent is not None :
         selectedRoleContent.setText(text)
         selectedRoleContent.setLexiconID(itemID)
+        selectedRoleContent.setIndexOfPlace(indexOfPlace)
+        
         if itemID == CONSTANT.noItemID :
             ID = UnionID()
             selectedRoleContent.setLexiconID(ID)
-            lexicon = Lexicon(ID,WTYPE.CONSTANT,text)
+            lexicon = Lexicon(ID,WTYPE.CONSTANT,text,indexOfPlace=indexOfPlace)
             setLexicon(WTYPE.CONSTANT,lexicon)
         
             print("selected constant itemID",ID)
@@ -468,7 +491,7 @@ def saveLexicon(obj,showWidget,tabwidget) :
         对应界面中的“保存”词条的按钮，词条ID与Tab ID需要一致,是通过signal触发的
         showWidget:对应要展示相应词条的那个Widget
     '''
-    content = obj.getContent()
+    content , indexOfPlace = obj.getContent()
     
 
     if obj.widgetType == WidgetType.CONJUNCTION :
@@ -490,9 +513,11 @@ def saveLexicon(obj,showWidget,tabwidget) :
     }
 
     if lexicon is None :
-        lexicon = Lexicon(obj.widgetID,typedict[obj.widgetType],content)
+        #通过按钮触发的一般没有位置信息
+        lexicon = Lexicon(obj.widgetID,typedict[obj.widgetType],content,indexOfPlace=indexOfPlace)
     else:
         lexicon.mainWord = content
+        lexicon.indexOfPlace = indexOfPlace
     
     if obj.widgetType == WidgetType.CONJUNCTION :
         #填补连词的成分
@@ -501,6 +526,15 @@ def saveLexicon(obj,showWidget,tabwidget) :
         lexicon.latterSentence = subsen2
         lexicon.formerSentenceID = id1
         lexicon.latterSentenceID = id2
+        subsen = searchLexiconByID(id1)
+        if subsen is not None :
+            subsen.belong = "{}.{}".format(lexicon.mainWord,lexicon.indexOfPlace)
+            subsen.isleft = True
+        subsen = searchLexiconByID(id2)
+        if subsen is not None :
+            subsen.belong = "{}.{}".format(lexicon.mainWord,lexicon.indexOfPlace)
+            subsen.isleft = False
+        
         lexicon.conjunctionRole = obj.conjunctionRole
         print("subsen1 {} , subsen2 {}".format(subsen1,subsen2))
     elif obj.widgetType == WidgetType.VERB :
@@ -509,9 +543,15 @@ def saveLexicon(obj,showWidget,tabwidget) :
         lexicon.originVerb = obj.originVerb
         lexicon.isNegative = obj.isNegative
         obj.checkRefTag()
+        print("dgerwgr ",lexicon)
+        # exit(0)
 
     #添加到列表框中
-    addItemToListWidget(showWidget,lexicon)
+    if hasattr(obj,"belong") and hasattr(obj,"isleft"):
+        addItemToListWidget(showWidget,lexicon,obj.belong,obj.isleft)
+    else:
+        addItemToListWidget(showWidget,lexicon)
+        
     #更新词条
     setLexicon(obj.widgetType,lexicon)
     
@@ -557,7 +597,7 @@ def setLexicon(widgetType,content):
         constant.setItem(content)
 
 
-def addItemToListWidget(ListWidget,lexicon):
+def addItemToListWidget(ListWidget,lexicon,belong=None,isleft=None):
     '''
         往列表框中添加元素，添加时会根据元素ID检查是否已经存在，如果存在，则直接替换
     '''
@@ -581,9 +621,11 @@ def addItemToListWidget(ListWidget,lexicon):
             item = CommonListWidgetItem(lexicon.wordID)
             
         item.setText(lexicon.getFormatString())
+        item.setBelong(belong)
+        item.setIsLeft(isleft)
         ListWidget.addItem(item)
 
-def tabAdd(tabWidget):
+def tabAdd(tabWidget,widget=None):
     '''
         添加标签页,参数tabWidget一般是主页面，即它的tabWindow对象才是QTabWidget
     '''
@@ -606,7 +648,10 @@ def tabAdd(tabWidget):
     remove(tabWidget.tabWindow)
     showWidget = None
     if tabWidget.widgetType == WidgetType.VERB :
-        showWidget = VerbWidget(tabWidget.pWidget,tabWidget.tabWindow.count())
+        if widget is not None :
+            showWidget = widget
+        else:
+            showWidget = VerbWidget(tabWidget.pWidget,tabWidget.tabWindow.count())
         tabWidget.tabWindow.addTab(showWidget,tabWidget.defaultTab)
         Add(tabWidget.tabWindow,QWidget(),"+")
         
@@ -661,17 +706,32 @@ def addWidgetInHBoxLayout(hws,widgetRequire=False) :
 def writeFile(results=None):
     if results is None :
         return
-
+    print("aegawgwerg ",results)
     root_xml = Element('root')
     sentence_xml = SubElement(root_xml, 'sentence')
     variables_xml = SubElement(root_xml, 'variables')
 
     variaDic = results.get("variable")
     if variaDic is not None :
+        #有重复现象
         for varia in variaDic:
             variable = variaDic[varia]
             key_xml=SubElement(variables_xml,'key')
-            key_xml.attrib={'name':'?'+variable['word']}
+            if "indexOfPlace" in variable and "belong" in variable :
+                if variable['indexOfPlace'] is not None and variable['belong'] is not None :          
+                    key_xml.attrib={'name':'?'+variable['word'],'indexOfPlace':str(variable['indexOfPlace']),'belong':variable['belong']}
+                elif variable['indexOfPlace'] is not None :
+                    key_xml.attrib={'name':'?'+variable['word'],'indexOfPlace':str(variable['indexOfPlace'])}
+                elif variable['belong'] is not None :
+                    key_xml.attrib={'name':'?'+variable['word'],'belong':variable['belong']}
+            elif "indexOfPlace" in variable :
+                if variable['indexOfPlace'] is not None :
+                    key_xml.attrib={'name':'?'+variable['word'],'indexOfPlace':str(variable['indexOfPlace'])}
+            elif "belong" in variable :
+                if variable['belong'] is not None :
+                    key_xml.attrib={'name':'?'+variable['word'],'belong':variable['belong']}
+            else:                                 
+                key_xml.attrib={'name':'?'+variable['word']}
             ref_xml=SubElement(key_xml,'ref')
             ref_xml.text=variable['ref']
     # preposition_xml = SubElement(root_xml, 'preposition')
@@ -697,8 +757,23 @@ def writeFile(results=None):
             
             verb = verbRst[verb]
             verb_item = SubElement(verb_xml, verb['originVerb'])
+            attrib = {}
+            if "indexOfPlace" in verb and "belong" in verb :
+                if verb['indexOfPlace'] is not None and verb['belong'] is not None :
+                    attrib = {'indexOfPlace':str(verb['indexOfPlace']),'belong':verb['belong']}
+            elif "indexOfPlace" in verb :
+                if verb['indexOfPlace'] is not None :
+                    attrib = {'indexOfPlace':str(verb['indexOfPlace'])}                
+            elif "belong" in verb :
+                if verb['belong'] is not None :
+                    attrib = {'belong':verb['belong']}   
+            if "isleft" in verb and verb['isleft'] is not None :
+                attrib['isleft'] = str(verb['isleft'])
+            verb_item.attrib = attrib             
             source_xml = SubElement(verb_item, 'source')
             source_xml.text = 'propbank'
+            word_xml = SubElement(verb_item,"wordInSentence")
+            word_xml.text = verb['word']
             # num_xml = SubElement(verb_item, 'num')
             # num_xml.text = re.findall(r'.*\.(.*)', verb_num)[0]
             thema_xml = SubElement(verb_item, 'thematicRoles')
@@ -706,7 +781,9 @@ def writeFile(results=None):
             for r in verb['roles']:
                 argn = SubElement(thema_xml, 'arg' + str(i))
                 role = SubElement(argn, 'role')
-                role.text = r
+                role.text = r[0]
+                content = SubElement(argn,'content')
+                content.text = r[1]
                 # descr = SubElement(argn, 'descr')
                 # descr.text = dic['descr']
                 i += 1
@@ -715,6 +792,19 @@ def writeFile(results=None):
         for conjunction in conjunctionRst :
             conjunction = conjunctionRst[conjunction]
             conjunction_item = SubElement(conjunction_xml, conjunction['word'])
+            if "indexOfPlace" in conjunction and "belong" in conjunction :
+                if conjunction['indexOfPlace'] is not None and conjunction['belong'] is not None :
+                    conjunction_item.attrib = {'indexOfPlace':str(conjunction['indexOfPlace']),'belong':conjunction['belong']}
+                elif conjunction['indexOfPlace'] is not None  :
+                    conjunction_item.attrib = {'indexOfPlace':str(conjunction['indexOfPlace'])}
+                elif conjunction['belong'] is not None :
+                    conjunction_item.attrib = {'belong':conjunction['belong']} 
+            elif "indexOfPlace" in conjunction :
+                if conjunction['indexOfPlace'] is not None  :
+                    conjunction_item.attrib = {'indexOfPlace':str(conjunction['indexOfPlace'])}                
+            elif "belong" in conjunction :
+                if conjunction['belong'] is not None :
+                    conjunction_item.attrib = {'belong':conjunction['belong']}  
             role_xml = SubElement(conjunction_item, 'thematic')
             role_xml.text = conjunction['role']['role']
             

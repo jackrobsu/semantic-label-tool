@@ -1,1 +1,5 @@
 The bee landed on the flower because it had pollen.	result/32c7dd219ea12a810e94aa221cb1e583c458e366a2e692ca92829f095c07459420e33d19.xml
+Scribes were often hired by nobles in the Medieval period since they had the ability to read and write.	result/92160d764b16479021f9ebe395b8c9b808491c6990196c2bcb573d15a9ca5848ba264ab4.xml
+Scribes were often hired by nobles in the Medieval period although they were able to read and write themselves.	result/93bad22d0b120e74c76c2436875330a57e599f5ae3ccffbf9a0078831a45953906e209fa.xml
+Walmart has leaked pages of their Black Friday Ad to the users of the internet, because they are trying to increase hype for them to come to their store.	result/591e677fe281a240d7097b83aee50dd7d9cad8ec663fc7ae65ddb41a03d0c89e514d6bcf.xml
+Walmart has leaked pages of their Black Friday Ad to the users of the internet, but they will have many other ads to look at to choose from.	result/59f4327628795cc7f7697110334ebde7aff1f11ee3689061e3b9080d1bb4f15bca58521c.xml

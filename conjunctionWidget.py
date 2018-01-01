@@ -74,6 +74,7 @@ class ConjunctionWidget(QMainWindow,QObject):
 
         self.buttonSaver = SaverButton(self,self.saverButtonSignal,self.pWidget,WidgetType.CONJUNCTION)
         self.buttonSaver.setText("保存")
+        self.buttonSaver.clicked.connect(self.buttonSaver.mousePressEvent)
         vbox = QVBoxLayout()
         vbox.addLayout(self.gridbox)
         
@@ -96,7 +97,7 @@ class ConjunctionWidget(QMainWindow,QObject):
         self.conjunctionDict = {}   
 
     def getContent(self):
-        return self.conjunctionContent.toPlainText()
+        return self.conjunctionContent.toPlainText() , self.conjunctionContent.indexOfPlace
 
     def getSubSentences(self):
         id1 = self.leftSentenceContent.lexiconID
@@ -158,3 +159,30 @@ class ConjunctionWidget(QMainWindow,QObject):
 
     def showEvent(self,event):
         textEditSelectionChanged(self,0,self.conjunctionContent)
+
+    def initializeContents(self,contents,verbListWidget) :
+        self.conjunctionContent.setText(contents[0])
+        selectedItem = self.tree.setSelectedByContent(contents[1])
+        # self.conjunctionRole = contents[1]
+        self.tree.ItemClickedEvent(selectedItem)
+        for index in range(verbListWidget.listWindow.count()) :
+            item = verbListWidget.listWindow.item(index)
+            if item.belong is None :
+                continue
+            if contents[0] in item.belong :
+                print("gerghr ",item.isleft)
+                isleft = item.isleft == "True"
+                print(type(isleft))
+                if isleft == True :
+                    textEditSelectionChanged(self,1,self.leftSentenceContent)
+                    print("设置左边 ",self.leftSentenceContent)
+                elif isleft == False :
+                    textEditSelectionChanged(self,2,self.rightSentenceContent)
+                    print("设置右边 ",self.rightSentenceContent)
+                    
+                else :
+                    continue
+                print("item ID ",item)
+                verbListWidget.listWindow.setCurrentItem(item)
+                verbListWidget.addButton.clicked.emit()
+        self.buttonSaver.clicked.emit()

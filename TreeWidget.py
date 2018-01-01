@@ -127,6 +127,24 @@ class Tree(QTreeWidget):
         
         self.itemClicked.emit(WidgetItem,I)
 
+    def setSelectedByContent(self,content=None):
+        if content is None :
+            return
+        if isinstance(content,list) :
+            content = content[0]
+        items = self.ItemIteration()
+        selectedItem = None
+        for item , subItem , _ in items :
+            try:
+                if content.strip() == subItem.text(1).strip() :
+                    subItem.setCheckState(0,Qt.Checked)
+                    selectedItem = subItem
+                else:
+                    subItem.setCheckState(0,Qt.Unchecked)
+            except Exception :
+                pass 
+        return selectedItem
+
     def onClick(self, item, column):  
   
         print(item.text(0))  

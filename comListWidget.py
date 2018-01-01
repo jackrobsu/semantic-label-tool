@@ -18,6 +18,7 @@ class ComListWidget(QMainWindow):
         self.listWindow = CommonListWidget(pWidget,connectedTab)
         self.addButton = SignalWithHandleButton(self.AddSignal,self.listWindow)
         self.addButton.setText("确定")
+        self.addButton.clicked.connect(self.addButton.mousePressEvent)
 
         self.AddSignal.connect(TextAddThroughWidget)
         self.splitter.addWidget(self.title)

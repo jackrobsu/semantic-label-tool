@@ -57,6 +57,7 @@ class VerbWidget(QMainWindow,QObject):
 
         self.buttonSaver = SaverButton(self,self.saverButtonSignal,self.pWidget,WidgetType.VERB)
         self.buttonSaver.setText("保存")
+        self.buttonSaver.clicked.connect(self.buttonSaver.mousePressEvent)
 
         vbox = QVBoxLayout()
         vbox.addLayout(self.gridbox)
@@ -143,11 +144,10 @@ class VerbWidget(QMainWindow,QObject):
         self.resize(self.sizeHint())
         self.initialize()
         print("allcontents",len(self.allContents))
-        
         self.show()
 
     def getContent(self):
-        return self.verbContent.toPlainText()
+        return self.verbContent.toPlainText() , self.verbContent.indexOfPlace
 
     def initialize(self):
         self.textClickSignal.connect(textEditSelectionChanged)
@@ -159,6 +159,10 @@ class VerbWidget(QMainWindow,QObject):
         self.preButton.setEnabled(False)
         self.nextButton.setEnabled(False)
 
+        #用来表明该动词短语属于哪个连词或者动词，在展示已经标注过的句子时用到
+        self.belong = None
+        self.isleft = None
+        
         # textEditSelectionChanged(self,0,self.verbContent)
         
 
@@ -239,16 +243,35 @@ class VerbWidget(QMainWindow,QObject):
             return widget
         return hbox
         
-    def updateRoleLabel(self,roles,indexs):
+    def updateRoleLabel(self,roles,indexs=[],contents=[],ref=None):
         '''
             用于更新role label的文本内容，响应“选择语义角色窗口”中的“确定”按钮
         '''
-        
+        print("contents gaeg ",contents)
         def update():
             Roles = ["-"] * self.roleNum
             Roles[0:len(roles)] = roles
             for i , role in enumerate(Roles) :
-                getattr(self,"role{}".format(i+1)).setText(role)
+                getattr(self,"role{}".format(i+1)).setText(role)  
+                try:
+                    if contents :
+                        print("graegherh ",contents[i])
+                        getattr(self,"roleContent{}".format(i+1)).setText(contents[i])
+                        if "?" in contents[i] and contents[i][0] == "?" :
+                            getattr(self,"checkbox{}".format(i+1)).setCheckState(Qt.Checked)
+                            getattr(self,"reftag{}".format(i+1)).setEnabled(True)
+                            
+                            if ref is not None and isinstance(ref,list) :
+                                v = contents[i].strip()
+                                for variable in ref :
+                                    if variable[0].strip() == v :
+                                        getattr(self,"reftag{}".format(i+1)).setText(variable[1])
+                                        print("grewgherher")
+                                        break
+                                        
+                            
+                except Exception :
+                    traceback.print_exc()
             self.curChoosedItemsInTreeWidget = indexs
             textEditSelectionChanged(self,1,getattr(self,"roleContent1"))
         if len(roles) <= self.roleNum :
@@ -273,10 +296,11 @@ class VerbWidget(QMainWindow,QObject):
         existedRoleNum = len(labels)
         for rolenum in roles :
             rolename = "role{}".format(rolenum+existedRoleNum)
-            role , roleContent , reftag = addContent(self,self.defaultRole,controlcontents,rolenum+existedRoleNum,self.textClickSignal,tagWidth=self.tagWidth,contentWidth=self.contentWidth,checkBoxHidden=False,needTagTextEdit=True)
+            role , roleContent , checkbox , reftag = addContent(self,self.defaultRole,controlcontents,rolenum+existedRoleNum,self.textClickSignal,tagWidth=self.tagWidth,contentWidth=self.contentWidth,checkBoxHidden=False,needTagTextEdit=True,needCheckBox=True)
             setattr(self,rolename,role)
             setattr(self,"roleContent{}".format(rolenum+existedRoleNum),roleContent)
             setattr(self,"reftag{}".format(rolenum+existedRoleNum),reftag)
+            setattr(self,"checkbox{}".format(rolenum+existedRoleNum),checkbox)            
             print("roleContent{}".format(rolenum+existedRoleNum))
             labels.append(rolename)
             contents.append("roleContent{}".format(rolenum+existedRoleNum))
@@ -485,8 +509,9 @@ class VerbWidget(QMainWindow,QObject):
             print(i)
             text = getattr(self,self.allContents[i+1])
             lexicon = searchLexiconByID(text.lexiconID)
-            lexicon.ref = tagtext.toPlainText()
-            print(lexicon)
+            if lexicon is not None :
+                lexicon.ref = tagtext.toPlainText()
+                print(lexicon)
 
 # class VerbTabWidget(QMainWindow):
 #     '''
