@@ -69,8 +69,17 @@ class CommonTableWidget(QTableWidget):
         menu.exec_(QtGui.QCursor.pos())
 
     def CopyAction(self):
+        
+
+
         clipboard = QApplication.clipboard()
-        clipboard.setText(self.pApp.getSelectedWords())
+        words = self.pApp.getSelectedWords()
+        if isinstance(words,list) or isinstance(words,tuple) :
+            words = " ".join(words[0].split("_"))
+        else:
+            words = " ".join(words.split("_"))            
+
+        clipboard.setText(words)            
 
     def Clear(self):
         self.clearSelection()
@@ -231,6 +240,42 @@ class CommonListWidget(QListWidget):
     def actionClicked(self,event):
         TextAddThroughWidget(self)
 
+
+class ConstantWidget(QListWidget):
+    '''
+        pWidget : 该Widget所属的Widget
+    '''
+    def __init__(self,pWidget):
+        '''
+            widget:对应的TabWidget在pWidget中的属性名，如verbListwidget对应verbTab
+        '''
+        super().__init__()
+        self.pWidget = pWidget
+
+        constants = ["None"]
+        
+        for constant in constants :
+            item = CommonListWidgetItem(itemID=CONSTANT.noItemID)
+            item.setText(constant)
+            self.addItem(item)
+
+    def mouseDoubleClickEvent(self,event):
+        # self.signal.emit()
+        items = self.selectedItems()
+        if items :
+            item = items[0]
+            TextAddThroughWidget(self)
+
+    def contextMenuEvent(self,event):
+        menu = QMenu(self)
+        action = QAction()
+        action.setText("选中")
+        action.triggered.connect(self.actionClicked)
+        menu.addAction(action)
+        menu.exec_(QtGui.QCursor.pos())
+
+    def actionClicked(self,event):
+        TextAddThroughWidget(self)
    
 
 class CheckBox(QCheckBox):
@@ -576,6 +621,7 @@ def saveLexicon(obj,showWidget,tabwidget) :
     tabwidget.setTabText(tabwidget.currentIndex(),content)
 
 
+
 def UnionID():
     uid = str(uuid.uuid1())
     return str(int(time.time())) + uid
@@ -601,6 +647,7 @@ def setLexicon(widgetType,content):
     if widgetType == WidgetType.VERB :
         verb = Verbs()
         verb.setItem(content)
+        verb.PrintVerbs()
     elif widgetType == WidgetType.CONJUNCTION :
         conjunction = Conjunctions()
         conjunction.setItem(content)
@@ -720,6 +767,9 @@ def writeFile(results=None):
     if results is None :
         return
     print("aegawgwerg ",results)
+
+    
+
     root_xml = Element('root')
     sentence_xml = SubElement(root_xml, 'sentence')
     variables_xml = SubElement(root_xml, 'variables')
@@ -775,8 +825,9 @@ def writeFile(results=None):
     verbRst = results.get('verb')
     if verbRst is not None :
         for verb in verbRst:
-            
             verb = verbRst[verb]
+            if verb['originVerb'] is None :
+                return False
             verb_item = SubElement(verb_xml, verb['originVerb'])
             attrib = {}
             if "indexOfPlace" in verb and "belong" in verb :
@@ -805,17 +856,18 @@ def writeFile(results=None):
             word_xml.text = verb['word']
             # num_xml = SubElement(verb_item, 'num')
             # num_xml.text = re.findall(r'.*\.(.*)', verb_num)[0]
-            thema_xml = SubElement(verb_item, 'thematicRoles')
-            i = 0
-            for r in verb['roles']:
-                argn = SubElement(thema_xml, 'arg' + str(i))
-                role = SubElement(argn, 'role')
-                role.text = r[0]
-                content = SubElement(argn,'content')
-                content.text = r[1]
-                # descr = SubElement(argn, 'descr')
-                # descr.text = dic['descr']
-                i += 1
+            if "roles" in verb and verb['roles'] :
+                thema_xml = SubElement(verb_item, 'thematicRoles')
+                i = 0
+                for r in verb['roles']:
+                    argn = SubElement(thema_xml, 'arg' + str(i))
+                    role = SubElement(argn, 'role')
+                    role.text = r[0]
+                    content = SubElement(argn,'content')
+                    content.text = r[1]
+                    # descr = SubElement(argn, 'descr')
+                    # descr.text = dic['descr']
+                    i += 1
     conjunctionRst = results.get("conjunction")
     if conjunctionRst is not None :
         for conjunction in conjunctionRst :
@@ -845,3 +897,4 @@ def writeFile(results=None):
     filename = results['filename']
     # f = open('./result/%s.xml' % filename,'a+')
     tree.write(filename, encoding='utf-8')
+    return True

@@ -1,15 +1,2 @@
 The bee landed on the flower because it had pollen.	result/32c7dd219ea12a810e94aa221cb1e583c458e366a2e692ca92829f095c07459420e33d19.xml
-Scribes were often hired by nobles in the Medieval period since they had the ability to read and write.	result/92160d764b16479021f9ebe395b8c9b808491c6990196c2bcb573d15a9ca5848ba264ab4.xml
-Scribes were often hired by nobles in the Medieval period although they were able to read and write themselves.	result/93bad22d0b120e74c76c2436875330a57e599f5ae3ccffbf9a0078831a45953906e209fa.xml
-Walmart has leaked pages of their Black Friday Ad to the users of the internet, because they are trying to increase hype for them to come to their store.	result/591e677fe281a240d7097b83aee50dd7d9cad8ec663fc7ae65ddb41a03d0c89e514d6bcf.xml
-Walmart has leaked pages of their Black Friday Ad to the users of the internet, but they will have many other ads to look at to choose from.	result/59f4327628795cc7f7697110334ebde7aff1f11ee3689061e3b9080d1bb4f15bca58521c.xml
-Microsoft discontinued plans for the Courier tablet due to the success of the tablets from Apple because they feel the product would not be successful.	result/194ef33f60fd2b5f03729bdb5b002eb4eb9cf26d754d46d4ce0452fb629aeb3a1c8efe96.xml
-Microsoft discontinued plans for the Courier tablet due to the success of the tablets from Apple, so they have eliminated another competitor in the tablet market.	result/941fa28b2303efb9a1306eba7384ce63db6cf34ecce1bfd195230e0c0edc33d156fba752.xml
-Consultants are hired by companies to perform specialized tasks, but they do not always have money in the budget to hire these services.	result/db5f740d564b194b2cce95268c9a7a1525bde862e6c21b91932d4dd81efa829e901ba9f7.xml
-The father convinced his son that it is possible for him to one day become a knight, but he may never achieve such status coming from a peasant family.	result/50058d39dcbe565885c832728bc5ea737d2e264864e7336741f9cf9d3fdc99930b4d2b39.xml
-The father convinced his son that it is possible for him to one day become a knight, because he did not want to crush his dreams.	result/4b50b4ce9a2a537375a63f0dc88aea31fe08ad1054948094c4d5430e6305daab0ae3a1f2.xml
-The master rewarded the dog because he was a good owner.	result/d58503880b6c04e34a3f44638fc552e7b98d0f1348ab5a77ebbf5e157839997ff58cbb46.xml
-Dance Instructor Kate offers advice to Shelly because she wants her to become a professional dancer one day.	result/a40ef2c4f0f6ca5f1c848ef0a3cda7b529dd6ddf2117cc65074ce492dc01e1d5cad1ba04.xml
-Dance Instructor Kate offers advice to Shelly because she is eager to soak up as much experience as possible.	result/45fd2cf3133f7afae91c31c31be3ca35b219faba9d728f686716b4d13293b8c3339d7779.xml
-Sir Rodrick was made specialized fitted armor by Jack, because he needed armor that could withstand the power of a lance.	result/145f5588e3bf4431f0c32c3927b0ca31de9704de9914d4ffb9da59d68f0ee34185e8c1dc.xml
-Sir Rodrick was made specialized fitted armor by Jack, but he charged top coin for such a piece.	result/11c1155afaa6d64291adf2937e8804338ec0c9c3bdf61525d826b6361c1c8dd463a07453.xml
+Chevrolet had to recently recall their cars so they could receive a repair in their brakes.	result/6a80675dac40056a359aacf1ea9cc308f103faccfda1d30ec2d93039349ca5f1d9834c49.xml

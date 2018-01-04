@@ -33,16 +33,18 @@ class MyApp(QMainWindow):
         self.initializeVariables()
 
         rows = 3
-        cols = 20
+        cols = 17
         self.rows = rows
         self.columns = cols
         self.MainWindowWidth = 1000
         lenghtOfWord = 10
         defaultLength = 100
-        self.sentencewidget = QWidget()
-        hbox = QVBoxLayout()
+        self.sentencewidget = QMainWindow(self)
+        # hbox = QHBoxLayout()
+        splitter = QSplitter(Qt.Horizontal)
 
         #显示原始句子的Widght
+        widget = QMainWindow(self)
         self.sentenceshow = CommonTableWidget(self)
         # cols = int(widgetWidth/defaultLength) - 1        
         # self.setTableWidgetColumns(self.sentenceshow,itemWidth=defaultLength)
@@ -64,16 +66,24 @@ class MyApp(QMainWindow):
         self.sentenceshow.setEditTriggers(QAbstractItemView.NoEditTriggers)
         # self.sentenceshow.resize(self.MainWindowWidth,150)
         self.sentenceshow.setMinimumHeight(100)
+        self.sentenceshow.setMinimumWidth(int(self.MainWindowWidth * 0.8))
+        
+        widget.setCentralWidget(self.sentenceshow)
         # self.sentenceshow.addItem("dgagerr")
-
-        self.buttonAddSomeWords = QPushButton(self)
-        self.buttonAddSomeWords.setText("确定")
-        self.buttonAddSomeWords.clicked.connect(self.addSomeWords)
-        self.buttonAddSomeWords.resize(self.buttonAddSomeWords.sizeHint())
-        hbox.addWidget(self.sentenceshow)
-        hbox.addWidget(self.buttonAddSomeWords)
-        self.sentencewidget.setLayout(hbox)
-        self.sentencewidget.resize(self.MainWindowWidth,300)
+        self.constantListWidget = ConstantListWidget(self)
+        # self.buttonAddSomeWords = QPushButton(self)
+        # self.buttonAddSomeWords.setText("确定")
+        # self.buttonAddSomeWords.clicked.connect(self.addSomeWords)
+        # self.buttonAddSomeWords.resize(self.buttonAddSomeWords.sizeHint())
+        splitter.addWidget(widget)
+        splitter.addWidget(self.constantListWidget)
+        splitter.setStretchFactor(0,5)
+        splitter.setStretchFactor(1,3)
+        
+        # hbox.addWidget(self.buttonAddSomeWords)
+        # self.sentencewidget.setLayout(hbox)
+        self.sentencewidget.setCentralWidget(splitter)
+        # self.sentencewidget.resize(self.MainWindowWidth,300)
 
         #显示已生成的短语的Widget
         self.typeGroupssplitter = QSplitter(Qt.Horizontal)
@@ -191,7 +201,7 @@ class MyApp(QMainWindow):
         self.storeIndex = 0               #当前值代表待存储的位置，取前一句话要减一，如果变成负的，则表示要从已经标注的文件中取，此次的内存中已经到最前面了
         self.currentSavedFile = None      #当前处理的句子保存到外存中的文件名
 
-        self.currnetHandledFile = None
+        self.currentHandledFile = None
 
         self.sentenceGenerator = self.readFile()    
 
@@ -314,8 +324,11 @@ class MyApp(QMainWindow):
             # print("results   ",results)
             results['filename'] = filename
             self.currentSavedFile = filename
-            writeFile(results)
-            open("usedDatas/{}".format(self.currnetHandledFile),'a+').write(self.currentSentence+"\n")            
+            if writeFile(results) :
+                open("usedDatas/{}".format(self.currentHandledFile),'a+').write(self.currentSentence+"\n")     
+            else:
+                QMessageBox.warning(self,"警告","无法写入文件，请检查是否标注完全",QMessageBox.Ok,QMessageBox.Ok)
+                       
         else:
             QMessageBox.warning(self,"警告","您还没有选择将要保存的连词语义表示",QMessageBox.Ok,QMessageBox.Ok)
 
@@ -362,7 +375,26 @@ class MyApp(QMainWindow):
         self.nextButtonClickedEvent()
 
     def preButtonClickedEvent(self):
+
+        # self.storeIndex = 1
+        self.storeIndex -= 1
         
+        if self.storeIndex < 0 :
+            QMessageBox.warning(self,"警告","没有句子了")
+            self.storeIndex = 0
+        else:
+            if self.storeIndex >= len(self.sentenceStores) :
+                print("wrong in get data from sentenceStores for out of the length")
+                QMessageBox.warning(self,"警告","没有找到对应的句子")                
+                return
+            sentence = self.sentenceStores[self.storeIndex]
+            # sentence = ["agaerwgew","result/32c7dd219ea12a810e94aa221cb1e583c458e366a2e692ca92829f095c07459420e33d19.xml"]
+            self.showPreviousSentence(sentence)
+        self.sentenceStores.append((self.currentSentence,self.currentSavedFile))
+        
+
+
+    def showPreviousSentence(self,sentence):
         def verbWidgetInitialize(widgetIndex,verb,signalEmit=True,Datas=None):
             '''
                 从XML文件中恢复动词widget内容
@@ -439,57 +471,61 @@ class MyApp(QMainWindow):
                         
                     index += 1
 
+        self.showSentence(sentence[0])
 
-        self.storeIndex = 1
-        self.storeIndex -= 1
-        if self.storeIndex < 0 :
-            QMessageBox.warning(self,"警告","没有句子了")
-            self.storeIndex = 0
-        else:
-            # if self.storeIndex >= len(self.sentenceStores) :
-            #     print("wrong in get data from sentenceStores for out of the length")
-            #     return
-            # sentence = self.sentenceStores[self.storeIndex]
-            sentence = ["agaerwgew","result/32c7dd219ea12a810e94aa221cb1e583c458e366a2e692ca92829f095c07459420e33d19.xml"]
-            if sentence[1] is not None :
-                results = extractXMLData(sentence[1])
-                if results is None :
-                    self.resetWidget()
-                    self.showSentence(sentence[0])
-
-                    return
-                print(results)
+        if sentence[1] is not None :
+            results = extractXMLData(sentence[1])
+            
+            if results is None :
                 self.resetWidget()
-                print("count ",self.verbTab.tabWindow.count())
-                # AddVerbWidget(results['verbs'])
-                # AddConjunctionWidget(results['conjunctions'])
-                AddWidgets(results['verbs'],"verbTab",results)
-                AddWidgets(results['conjunctions'],"conjunctionTab")
-                
-
-
-                
-
+                return
+            
+            print(results)
+            self.resetWidget()
+            print("count ",self.verbTab.tabWindow.count())
+            # AddVerbWidget(results['verbs'])
+            # AddConjunctionWidget(results['conjunctions'])
+            AddWidgets(results['verbs'],"verbTab",results)
+            AddWidgets(results['conjunctions'],"conjunctionTab")
+        else:
+            self.resetWidget()
+            
                 
                             
 
 
     def nextButtonClickedEvent(self):
+        
+        def getNextSentence():
+            if self.currentSentence is not None :
+                self.sentenceStores.append((self.currentSentence,self.currentSavedFile))
+                self.currentSavedFile = None
+                self.storeIndex += 1
+            sentence = self.sentence.__next__()   
+            print("sentence ",sentence,"  currentsavedfile ",self.currentSavedFile)         
+            self.currentSentence = self.wordsFilter(sentence)
+            self.showSentence(self.currentSentence)
+            self.resetWidget()
+
         try:
             if self.storeIndex >= len(self.sentenceStores) :
-                if self.currentSentence is not None :
-                    self.sentenceStores.append((self.currentSentence,self.currentSavedFile))
-                    self.currentSavedFile = None
-                    self.storeIndex += 1
-                sentence = self.sentence.__next__()            
-                self.currentSentence = self.wordsFilter(sentence)
-                self.showSentence(self.currentSentence)
-                self.resetWidget()
+                # if self.currentSentence is not None :
+                #     self.sentenceStores.append((self.currentSentence,self.currentSavedFile))
+                #     self.currentSavedFile = None
+                #     self.storeIndex += 1
+                # sentence = self.sentence.__next__()            
+                # self.currentSentence = self.wordsFilter(sentence)
+                # self.showSentence(self.currentSentence)
+                # self.resetWidget()
+                getNextSentence()
             else:
                 self.storeIndex += 1
-                print("current store index ",self.storeIndex)
-          
-     
+                # print("current store index ",self.storeIndex)
+                # print("length of sentenceStores ",len(self.sentenceStores))
+                if self.storeIndex < len(self.sentenceStores) :
+                    self.showPreviousSentence(self.sentenceStores[self.storeIndex])
+                else:
+                    getNextSentence()
         except StopIteration :
             self.run()
 
@@ -520,7 +556,7 @@ class MyApp(QMainWindow):
         dataDir = os.listdir("datas")
         usedDataDir = os.listdir("usedDatas")
         for filename in dataDir :
-            self.currnetHandledFile = filename
+            self.currentHandledFile = filename
             self.resetResFile()
             if filename not in usedDataDir :
                 yield read(filename)
@@ -560,7 +596,7 @@ class MyApp(QMainWindow):
                 QMessageBox.warning(self,"警告","读取配置文件出错")
                 traceback.print_exc()
                     
-        filename = re.sub(r'\.txt',"",self.currnetHandledFile)
+        filename = re.sub(r'\.txt',"",self.currentHandledFile)
 
         # filename = "res/sentenceFileMap.csv"
         # filename = "res/sentenceFileMap.txt"

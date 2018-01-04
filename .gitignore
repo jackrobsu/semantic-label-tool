@@ -1,2 +1,9 @@
 __pycache__/*
 *.pyc
+build/*
+dist/*
+test/*
+result/*
+result
+usedDatas/*
+res/a_sentence_file_pair.txt

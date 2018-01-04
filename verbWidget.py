@@ -293,7 +293,8 @@ class VerbWidget(QMainWindow,QObject):
                 except Exception :
                     traceback.print_exc()
             self.curChoosedItemsInTreeWidget = indexs
-            textEditSelectionChanged(self,1,getattr(self,"roleContent1"))
+            if hasattr(self,"roleContent1") :
+                textEditSelectionChanged(self,1,getattr(self,"roleContent1"))
         if len(roles) <= self.roleNum :
             update()
         else:

@@ -52,6 +52,21 @@ class Lexicon():
         self.ref = None
 
     def __str__(self):
+        from singleInstance import searchLexiconByID
+        
+        if self.WType == WTYPE.CONJUNCTION :
+            formerSentence = searchLexiconByID(self.formerSentenceID)
+            if formerSentence is not None :
+                formerString = formerSentence.getFormatString()
+            else:
+                formerString = None
+            latterSentence = searchLexiconByID(self.latterSentenceID)
+            if latterSentence is not None : 
+                latterString = latterSentence.getFormatString()
+            else:
+                latterString = None
+            return "wordType {} , mainWord {} , indexOfPlace {} , roles {} , wordID {} , formerSentenceID {} , latterSentenceID {} , formerSentence {} , latterSentence {}".format(self.typedict[self.WType],self.mainWord,self.indexOfPlace,self.roles,self.wordID,self.formerSentenceID,self.latterSentenceID,formerString,latterString)
+            
         return "wordType {} , mainWord {} , indexOfPlace {} , roles {} , wordID {} , isPronoun {} , ref {} , isNegative {}".format(self.typedict[self.WType],self.mainWord,self.indexOfPlace,self.roles,self.wordID,self.isPronoun,self.ref,self.isNegative)
         
     def getFormatString(self,IDs=[]):
@@ -63,7 +78,7 @@ class Lexicon():
             print("In getFormatString, ID {} , searchID {} , lexicon {} , text {}".format(self.wordID,ID,lexicon,text))
             if lexicon is None :
                 return text
-            if self.wordID in existedIDs :
+            if lexicon.wordID in existedIDs :
                 return text
             else:
                 # print("in searched word ",lexicon.wordID," mainword ", lexicon.mainWord)
@@ -103,7 +118,7 @@ class Lexicon():
         elif self.WType == WTYPE.NOUN :
             return "{}".format(self.mainWord)
         elif self.WType == WTYPE.CONSTANT :
-            self.getPronounFormat()
+            return self.getPronounFormat()
         else:
             return ""
         
@@ -147,12 +162,36 @@ class Lexicon():
         from singleInstance import searchLexiconByID
 
         def isExists(words):
-            if self.mainWord not in words :
-                return False
-            word = words[self.mainWord]
-            if int(self.indexOfPlace) != word['indexOfPlace'] :
-                return False
-            return True
+            #有问题，由于ID不一样，导致一样的词也会认为不一样
+            w = self.originVerb if self.WType == WTYPE.VERB else self.mainWord
+            for word in words :
+                word = words[word]
+                Word = word['word'].split("#")[0]
+                if w != Word :
+                    continue
+                if int(self.indexOfPlace) != int(word['indexOfPlace']) :
+                    continue
+                belong = self.getBelongFormat()
+                if belong is None :
+                    belong = self.belong
+                if "belong" in word and belong != word['belong'] :
+                    continue
+                return True
+            return False
+            # if self.mainWord not in words :
+            #     print("ggreghr ",self.mainWord)
+            #     return False
+            # word = words[self.mainWord]
+            # if int(self.indexOfPlace) != int(word['indexOfPlace']) :
+            #     print("word ",word,self.indexOfPlace,word['indexOfPlace'])
+            #     return False
+            
+            # belong = self.getBelongFormat()
+            # if belong is None :
+            #     belong = self.belong
+            # if "belong" in word and belong != word['belong'] :
+            #     return False
+            # return True
 
         # print("jinru ",self)
         # print("@@@@@@@@" , IDs , self.wordID in IDs)
@@ -167,7 +206,7 @@ class Lexicon():
         if "variable" not in results :
             results['variable'] = {}
         if self.WType == WTYPE.VERB :
-            verb = "{}#{}".format(self.mainWord,self.wordID)
+            verb = "{}#{}".format(self.originVerb,self.wordID)
             if isExists(results['verb']) :
                 return
             # if self.mainWord not in results['verb'] :
@@ -201,6 +240,11 @@ class Lexicon():
             if self.isPronoun :
                 if isExists(results['variable']) :
                     return
+                else:
+                    print("##########################")                    
+                    print(self)
+                    print(results['variable'])
+                    print("##########################")
                 pronoun = "{}#{}".format(self.mainWord,self.wordID)
                 # if pronoun not in results['variable'] :
                 belong = self.getBelongFormat()

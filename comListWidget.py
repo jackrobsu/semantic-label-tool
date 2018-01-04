@@ -29,3 +29,22 @@ class ComListWidget(QMainWindow):
     def resetWidget(self):
         self.listWindow.clear()
         
+class ConstantListWidget(QMainWindow):
+    AddSignal = pyqtSignal(QWidget)
+    def __init__(self,pWidget):
+        super(ConstantListWidget,self).__init__()
+        self.splitter = QSplitter(Qt.Vertical)
+        self.title = QLabel("常量")
+        self.listWindow = ConstantWidget(pWidget)
+        # self.addButton = SignalWithHandleButton(self.AddSignal,self.listWindow)
+        # self.addButton.setText("确定")
+        # self.addButton.clicked.connect(self.addButton.mousePressEvent)
+
+        # self.AddSignal.connect(TextAddThroughWidget)
+        self.splitter.addWidget(self.title)
+        self.splitter.addWidget(self.listWindow)
+        # self.splitter.addWidget(self.addButton)
+        self.setCentralWidget(self.splitter)
+
+    def resetWidget(self):
+        self.listWindow.clear()

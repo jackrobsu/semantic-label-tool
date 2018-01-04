@@ -98,8 +98,9 @@ def extractXMLData(filename):
         return results
 
     except Exception :
+        print("try to open file ",filename)
         traceback.print_exc()
         return None
     
 if __name__ == "__main__" :
-    print(extractXMLData("result/32c7dd219ea12a810e94aa221cb1e583c458e366a2e692ca92829f095c07459420e33d19.xml"))
+    print(extractXMLData("result/591e677fe281a240d7097b83aee50dd7d9cad8ec663fc7ae65ddb41a03d0c89e514d6bcf.xml"))
