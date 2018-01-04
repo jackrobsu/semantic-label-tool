@@ -43,7 +43,7 @@ def extractXMLData(filename):
                 for ref in items :
                     r = ref.text
                 if r is not None :
-                    variables.append((v,r))
+                    variables.append((v,r,item))
         verbs = []
         for Verb in treeRoot.iter("verb") :
             for verb in Verb :

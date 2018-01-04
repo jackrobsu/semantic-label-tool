@@ -364,6 +364,9 @@ class MyApp(QMainWindow):
     def preButtonClickedEvent(self):
         
         def verbWidgetInitialize(widgetIndex,verb,signalEmit=True,Datas=None):
+            '''
+                从XML文件中恢复动词widget内容
+            '''
             widget = self.verbTab.tabWindow.widget(widgetIndex)
             widget.verbContent.setText(verb[0])
             roles = []
@@ -382,6 +385,11 @@ class MyApp(QMainWindow):
                 widget.belong = attrib['belong']
             if "isleft" in attrib :
                 widget.isleft = attrib['isleft']
+            if "indexOfPlace" in attrib :
+                print("indexOfPlace ",attrib['indexOfPlace'],type(attrib['indexOfPlace']))
+                widget.setMainWordIndexOfPlace(attrib['indexOfPlace'])
+            if "isNegative" in attrib :
+                widget.isNegative = attrib['isNegative'] == "True"
             if len(verb) >= 4 :
                 widget.originVerb = verb[3]
             if signalEmit :

@@ -99,6 +99,9 @@ class ConjunctionWidget(QMainWindow,QObject):
     def getContent(self):
         return self.conjunctionContent.toPlainText() , self.conjunctionContent.indexOfPlace
 
+    def setMainWordIndexOfPlace(self,indexOfPlace):
+        self.conjunctionContent.indexOfPlace = indexOfPlace
+
     def getSubSentences(self):
         id1 = self.leftSentenceContent.lexiconID
         id2 = self.rightSentenceContent.lexiconID
@@ -185,4 +188,8 @@ class ConjunctionWidget(QMainWindow,QObject):
                 print("item ID ",item)
                 verbListWidget.listWindow.setCurrentItem(item)
                 verbListWidget.addButton.clicked.emit()
+        attrib = contents[2]
+        if "indexOfPlace" in attrib :
+            self.setMainWordIndexOfPlace(attrib['indexOfPlace'])
+
         self.buttonSaver.clicked.emit()

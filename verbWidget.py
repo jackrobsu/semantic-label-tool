@@ -149,6 +149,12 @@ class VerbWidget(QMainWindow,QObject):
     def getContent(self):
         return self.verbContent.toPlainText() , self.verbContent.indexOfPlace
 
+    def setMainWordIndexOfPlace(self,indexOfPlace):
+        '''
+            在从已经标注的内容中恢复到标注工具时，一般会用到
+        '''
+        self.verbContent.indexOfPlace = indexOfPlace
+
     def initialize(self):
         self.textClickSignal.connect(textEditSelectionChanged)
         self.saverButtonSignal.connect(saveLexicon)
@@ -246,6 +252,7 @@ class VerbWidget(QMainWindow,QObject):
     def updateRoleLabel(self,roles,indexs=[],contents=[],ref=None):
         '''
             用于更新role label的文本内容，响应“选择语义角色窗口”中的“确定”按钮
+            contents和ref一般用在从文本文件中恢复时使用
         '''
         print("contents gaeg ",contents)
         def update():
@@ -260,14 +267,27 @@ class VerbWidget(QMainWindow,QObject):
                         if "?" in contents[i] and contents[i][0] == "?" :
                             getattr(self,"checkbox{}".format(i+1)).setCheckState(Qt.Checked)
                             getattr(self,"reftag{}".format(i+1)).setEnabled(True)
+                            ID = UnionID()
+                            getattr(self,"roleContent{}".format(i+1)).setLexiconID(ID)                            
+                            lexicon = Lexicon(ID,WTYPE.CONSTANT,contents[i])
+                            lexicon.isPronoun = True
                             
                             if ref is not None and isinstance(ref,list) :
                                 v = contents[i].strip()
                                 for variable in ref :
                                     if variable[0].strip() == v :
                                         getattr(self,"reftag{}".format(i+1)).setText(variable[1])
+                                        lexicon.ref = variable[1]
+                                        attrib = variable[2]
+                                        if "indexOfPlace" in attrib :
+                                            lexicon.indexOfPlace = attrib['indexOfPlace']
+                                        # if "belong" in attrib :
+                                        #     lexicon.belong = attrib['belong']
+                                        lexicon.belongID = self.widgetID
                                         print("grewgherher")
                                         break
+                            setLexicon(WTYPE.CONSTANT,lexicon)
+                            
                                         
                             
                 except Exception :
@@ -395,6 +415,7 @@ class VerbWidget(QMainWindow,QObject):
             if role == self.defaultRole :
                 continue
             roles.append((role,content,Content.lexiconID))
+        print("roles   ",roles)
         return roles
 
     def showPage(self):

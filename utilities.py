@@ -155,7 +155,7 @@ class CommonListWidgetItem(QListWidgetItem) :
         用来显示已经保存的短语或词等
         itemID:是与词条对应的ID，用来查找相应的词条以获取更多信息
     '''
-    def __init__(self,itemID,needCheckState=False,belong=None,isleft=None):
+    def __init__(self,itemID,needCheckState=False,belong=None,isleft=None,indexOfPlace=None):
         super().__init__()
         self.itemID = itemID
         if needCheckState :
@@ -164,6 +164,7 @@ class CommonListWidgetItem(QListWidgetItem) :
         
         self.belong = belong
         self.isleft = isleft
+        self.indexOfPlace = indexOfPlace
 
     def setLexiconID(self,ID):
         self.itemID = ID
@@ -177,6 +178,9 @@ class CommonListWidgetItem(QListWidgetItem) :
             
     def setIsLeft(self,isleft):
         self.isleft = isleft
+
+    def setIndexOfPlace(self,indexOfPlace) :
+        self.indexOfPlace = indexOfPlace
 
 class CommonListWidget(QListWidget):
     '''
@@ -248,8 +252,16 @@ class CheckBox(QCheckBox):
 
         def setPronoun(isPronoun):
             word = searchLexiconByID(self.textedit.lexiconID)
+
             if word is not None :
+                word.belongID = self.pWidget.widgetID
                 word.isPronoun = isPronoun
+            else:
+                try:
+                    lexicon = Lexicon(self.pWidget.widgetID,WTYPE.CONSTANT,self.textedit.toPlainText(),indexOfPlace=self.textedit.indexOfPlace)
+                    setLexicon(WTYPE.CONSTANT,lexicon)
+                except Exception :
+                    pass
 
         if self.checkState() == Qt.Checked :
             messagecontainer = MessageContainer()
@@ -492,7 +504,7 @@ def saveLexicon(obj,showWidget,tabwidget) :
         showWidget:对应要展示相应词条的那个Widget
     '''
     content , indexOfPlace = obj.getContent()
-    
+    print("index ",indexOfPlace,content)
 
     if obj.widgetType == WidgetType.CONJUNCTION :
         if content == "" :
@@ -518,6 +530,7 @@ def saveLexicon(obj,showWidget,tabwidget) :
     else:
         lexicon.mainWord = content
         lexicon.indexOfPlace = indexOfPlace
+
     
     if obj.widgetType == WidgetType.CONJUNCTION :
         #填补连词的成分
@@ -719,19 +732,27 @@ def writeFile(results=None):
             key_xml=SubElement(variables_xml,'key')
             if "indexOfPlace" in variable and "belong" in variable :
                 if variable['indexOfPlace'] is not None and variable['belong'] is not None :          
-                    key_xml.attrib={'name':'?'+variable['word'],'indexOfPlace':str(variable['indexOfPlace']),'belong':variable['belong']}
+                    key_xml.attrib={'name':variable['word'],'indexOfPlace':str(variable['indexOfPlace']),'belong':variable['belong']}
                 elif variable['indexOfPlace'] is not None :
-                    key_xml.attrib={'name':'?'+variable['word'],'indexOfPlace':str(variable['indexOfPlace'])}
+                    key_xml.attrib={'name':variable['word'],'indexOfPlace':str(variable['indexOfPlace'])}
                 elif variable['belong'] is not None :
-                    key_xml.attrib={'name':'?'+variable['word'],'belong':variable['belong']}
+                    key_xml.attrib={'name':variable['word'],'belong':variable['belong']}
+                else:
+                    key_xml.attrib={'name':variable['word']}
+                    
             elif "indexOfPlace" in variable :
                 if variable['indexOfPlace'] is not None :
-                    key_xml.attrib={'name':'?'+variable['word'],'indexOfPlace':str(variable['indexOfPlace'])}
+                    key_xml.attrib={'name':variable['word'],'indexOfPlace':str(variable['indexOfPlace'])}
+                else:
+                    key_xml.attrib={'name':variable['word']}
+                    
             elif "belong" in variable :
                 if variable['belong'] is not None :
-                    key_xml.attrib={'name':'?'+variable['word'],'belong':variable['belong']}
+                    key_xml.attrib={'name':variable['word'],'belong':variable['belong']}
+                else:
+                    key_xml.attrib={'name':variable['word']}                    
             else:                                 
-                key_xml.attrib={'name':'?'+variable['word']}
+                key_xml.attrib={'name':variable['word']}
             ref_xml=SubElement(key_xml,'ref')
             ref_xml.text=variable['ref']
     # preposition_xml = SubElement(root_xml, 'preposition')
@@ -761,15 +782,23 @@ def writeFile(results=None):
             if "indexOfPlace" in verb and "belong" in verb :
                 if verb['indexOfPlace'] is not None and verb['belong'] is not None :
                     attrib = {'indexOfPlace':str(verb['indexOfPlace']),'belong':verb['belong']}
+                elif verb['indexOfPlace'] is not None  :
+                    attrib = {'indexOfPlace':str(verb['indexOfPlace'])}
+                elif verb['belong'] is not None :
+                    attrib = {'belong':verb['belong']} 
             elif "indexOfPlace" in verb :
                 if verb['indexOfPlace'] is not None :
-                    attrib = {'indexOfPlace':str(verb['indexOfPlace'])}                
+                    attrib['indexOfPlace'] = str(verb['indexOfPlace'])                
             elif "belong" in verb :
                 if verb['belong'] is not None :
-                    attrib = {'belong':verb['belong']}   
+                    attrib['belong'] = verb['belong']   
             if "isleft" in verb and verb['isleft'] is not None :
                 attrib['isleft'] = str(verb['isleft'])
-            verb_item.attrib = attrib             
+            if "isNegative" in verb and verb['isNegative'] is not None :
+                attrib['isNegative'] = str(verb['isNegative'])
+            # print(attrib)
+            verb_item.attrib = attrib           
+            # print(verb_item.attrib)
             source_xml = SubElement(verb_item, 'source')
             source_xml.text = 'propbank'
             word_xml = SubElement(verb_item,"wordInSentence")
