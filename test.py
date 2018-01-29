@@ -188,6 +188,7 @@ class MyApp(QMainWindow):
 
     def initializeVariables(self):
         self.currentSentence = None
+        self.dataDir = []
 
     def center(self):
         qr = self.frameGeometry()
@@ -202,8 +203,8 @@ class MyApp(QMainWindow):
         self.currentSavedFile = None      #当前处理的句子保存到外存中的文件名
 
         self.currentHandledFile = None
-
-        self.sentenceGenerator = self.readFile()    
+        if not self.dataDir :
+            self.sentenceGenerator = self.readFile()    
 
         try:    
             self.sentence = self.sentenceGenerator.__next__()
@@ -554,6 +555,7 @@ class MyApp(QMainWindow):
         if not os.path.exists("usedDatas") :
             os.mkdir("usedDatas")
         dataDir = os.listdir("datas")
+        self.dataDir = list(dataDir)
         usedDataDir = os.listdir("usedDatas")
         for filename in dataDir :
             self.currentHandledFile = filename
