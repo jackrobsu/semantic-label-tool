@@ -1,3 +1,4 @@
 The bee landed on the flower because it had pollen.	result/32c7dd219ea12a810e94aa221cb1e583c458e366a2e692ca92829f095c07459420e33d19.xml
 Chevrolet had to recently recall their cars so they could receive a repair in their brakes.	result/6a80675dac40056a359aacf1ea9cc308f103faccfda1d30ec2d93039349ca5f1d9834c49.xml
 Scribes were often hired by nobles in the Medieval period since they had the ability to read and write.	result/92160d764b16479021f9ebe395b8c9b808491c6990196c2bcb573d15a9ca5848ba264ab4.xml
+Scribes were often hired by nobles in the Medieval period although they were able to read and write themselves.	result/93bad22d0b120e74c76c2436875330a57e599f5ae3ccffbf9a0078831a45953906e209fa.xml

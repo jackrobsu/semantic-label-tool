@@ -313,6 +313,10 @@ class CheckBox(QCheckBox):
             messagecontainer = MessageContainer()
             messagecontainer.setMessage("nextRoleLableNum",None)
             text = self.textedit.toPlainText()
+            if hasattr(self.pWidget,"conjunctionContent") :
+                self.pWidget.conjunctionContent.setText("Ignored")
+                textEditSelectionChanged(self.pWidget,self.num+1,getattr(self.pWidget,self.pWidget.allContents[self.num+1]))
+                return
             if text is None or text == "" :
                 return
             try:
@@ -329,6 +333,13 @@ class CheckBox(QCheckBox):
             textEditSelectionChanged(self.pWidget,self.num,self.tagTextEdit)
         else:
             text = self.textedit.toPlainText()
+
+
+            if hasattr(self.pWidget,"conjunctionContent") :            
+                self.pWidget.conjunctionContent.setText("")
+                textEditSelectionChanged(self.pWidget,0,getattr(self.pWidget,self.pWidget.allContents[0]))                
+                return
+
             if text is None or text == "" :
                 return
             try:
@@ -341,6 +352,8 @@ class CheckBox(QCheckBox):
                 pass
             if self.num+1 < len(self.pWidget.allContents) :
                 textEditSelectionChanged(self.pWidget,self.num+1,getattr(self.pWidget,self.pWidget.allContents[self.num+1]))
+
+        
             
     def addTagTextEdit(self,textedit):
         self.tagTextEdit = textedit
@@ -435,7 +448,7 @@ def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=
         checkbox.setHidden(checkBoxHidden)
     else:
         if needIgnored :
-            if pWidget is None :
+            if True :
                 checkbox = CheckBox(obj,content,num=num)
             else:
                 checkbox = CheckBoxForIgnored(pWidget)
