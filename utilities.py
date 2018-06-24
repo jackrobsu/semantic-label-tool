@@ -11,6 +11,7 @@ import traceback
 import xml.etree.cElementTree as ET
 from xml.etree.ElementTree import Element, SubElement, ElementTree
 import hashlib
+import re
 
 class WidgetType(Enum):
     VERB = 0
@@ -251,8 +252,8 @@ class ConstantWidget(QListWidget):
         '''
         super().__init__()
         self.pWidget = pWidget
-
-        constants = ["None"]
+        
+        constants = ["None (Any)","Ignored"]
         
         for constant in constants :
             item = CommonListWidgetItem(itemID=CONSTANT.noItemID)
@@ -361,6 +362,19 @@ class CheckBoxForNegativeVerb(QCheckBox):
             if self.connectedLabel is not None :
                 self.connectedLabel.setStyleSheet("color:black;")
 
+class CheckBoxForIgnored(QCheckBox):
+    def __init__(self,pWidget):
+        super().__init__(pWidget)
+        self.pWidget = pWidget
+        self.clicked.connect(self.ItemClickedEvent)
+     
+    def ItemClickedEvent(self):
+        if self.checkState() == Qt.Checked :
+            self.pWidget.conjunctionContent.setText("Ignored")
+        else:
+            self.pWidget.conjunctionContent.setText("")
+            
+
 
 class CommonEventHandle :
     
@@ -393,7 +407,7 @@ class CommonEventHandle :
 
 ##############################################################
 
-def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=30,contentHeight=30,contentWidth=100,needCheckBox=False,checkBoxHidden=True,needTagTextEdit=False,noCheckBox=False,noTagTextEdit=False):
+def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=30,contentHeight=30,contentWidth=100,needCheckBox=False,checkBoxHidden=True,needTagTextEdit=False,noCheckBox=False,noTagTextEdit=False,needIgnored=False,pWidget=None):
     '''
         用于给页面添加基本的标签和文本编辑框
         noCheckBox和noTagTextEdit如果为真，表示不要添加到controlcontents中去
@@ -420,8 +434,16 @@ def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=
         checkbox = CheckBox(obj,content,num=num)
         checkbox.setHidden(checkBoxHidden)
     else:
-        needCheckBox = False
-        
+        if needIgnored :
+            if pWidget is None :
+                checkbox = CheckBox(obj,content,num=num)
+            else:
+                checkbox = CheckBoxForIgnored(pWidget)
+            # checkbox.setHidden(checkBoxHidden)
+            needCheckBox = True
+        else:
+            needCheckBox = False
+
     
     if signal is None :
         reftag = QTextEdit()
@@ -437,13 +459,20 @@ def addContent(obj,text,controlcontents,num=0,signal=None,tagHeight=30,tagWidth=
     controlcontents.append(content)
     if not noCheckBox :
         controlcontents.append(checkbox)
+    else:
+        if needIgnored :
+            controlcontents.append(checkbox)
+
     if not noTagTextEdit :
         if needTagTextEdit :
             controlcontents.append(reftag)
         else:
-            controlcontents.append(None)
+            if needIgnored :
+                controlcontents.append(QLabel("是否忽略"))
+            else:
+                controlcontents.append(None)
     
-
+    
     if needCheckBox and needTagTextEdit :
         return tag, content , checkbox , reftag
     elif needCheckBox :
@@ -540,7 +569,9 @@ def TextAddThroughWidget(widget) :
     item = widget.currentItem()
     if item is None :
         return
-    addWordsToSelectedTextEdit(item.text(),item.itemID)
+    text = item.text()
+    text = re.sub(r'\s+\(.+?\)',"",text)
+    addWordsToSelectedTextEdit(text,item.itemID)
 
 
 def saveLexicon(obj,showWidget,tabwidget) :

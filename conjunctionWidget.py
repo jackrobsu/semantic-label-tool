@@ -45,7 +45,7 @@ class ConjunctionWidget(QMainWindow,QObject):
             添加标签和文本输入框
         '''
         controlContents = []
-        self.conjunctionLabel , self.conjunctionContent = addContent(self,"连词",controlcontents=controlContents,num=0,signal=self.textClickSignal,tagWidth=50)
+        self.conjunctionLabel , self.conjunctionContent , self.conjunctionCheckbox = addContent(self,"连词",controlcontents=controlContents,num=0,signal=self.textClickSignal,tagWidth=50,noCheckBox=True,needIgnored=True,pWidget=self)
         # self.conjunctionRoleLabel , self.conjunctionRoleContent = addContent(self,"语义角色",controlcontents=controlContents,num=1,signal=self.textClickSignal,tagWidth=50)
        
         self.leftSentenceLabel , self.leftSentenceContent , self.leftRefTag= addContent(self,"子句1",controlcontents=controlContents,num=1,signal=self.textClickSignal,tagWidth=50,checkBoxHidden=False,needTagTextEdit=True)
@@ -56,6 +56,9 @@ class ConjunctionWidget(QMainWindow,QObject):
         # self.rightSentenceRoleLabel , self.rightSentenceRoleContent = addContent(self,"语义角色",controlcontents=controlContents,num=4,signal=self.textClickSignal,tagWidth=50)
         self.allLabels = ['conjunctionLabel', 'leftSentenceLabel', 'rightSentenceLabel']
         self.allContents = ['conjunctionContent','leftSentenceContent','rightSentenceContent']
+
+        self.conjunctionCheckbox    
+
         return controlContents
 
     def gridAddForLeftWindow(self,controlContents):

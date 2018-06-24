@@ -15,3 +15,6 @@
 相等#(compare,sameDegree,sameDegree)
 @互斥（选择）关系
 选择#(Mutual,choiceA,choiceB)
+@没有连词（没有显式或隐式存在上述关系）
+单句#(NoConjunction,A,None)
+双句#(NoConjunction,A,B)

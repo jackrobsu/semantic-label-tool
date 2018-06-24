@@ -199,8 +199,11 @@ class MyApp(QMainWindow):
     def run(self):
         
         self.sentenceStores = []
-        self.storeIndex = 0               #当前值代表待存储的位置，取前一句话要减一，如果变成负的，则表示要从已经标注的文件中取，此次的内存中已经到最前面了
+        self.storeIndex = -1               #当前值代表待存储的位置，取前一句话要减一，如果变成负的，则表示要从已经标注的文件中取，此次的内存中已经到最前面了
         self.currentSavedFile = None      #当前处理的句子保存到外存中的文件名
+
+        self.prevFlag = False
+        self.nextFlag = False
 
         self.currentHandledFile = None
         if not self.dataDir :
@@ -327,6 +330,9 @@ class MyApp(QMainWindow):
             self.currentSavedFile = filename
             if writeFile(results) :
                 open("usedDatas/{}".format(self.currentHandledFile),'a+').write(self.currentSentence+"\n")     
+                if self.storeIndex < len(self.sentenceStores) - 1 :
+                    self.sentenceStores[self.storeIndex][1] = filename
+                    self.currentSavedFile = None
             else:
                 QMessageBox.warning(self,"警告","无法写入文件，请检查是否标注完全",QMessageBox.Ok,QMessageBox.Ok)
                        
@@ -363,8 +369,10 @@ class MyApp(QMainWindow):
             else:
                 filename += str(int(time.time()))
         if flag :
-            self.multifiles['sentence'] = self.currentSentence
-            self.multifiles['hashFile'] = filename
+            # self.multifiles['sentence'] = self.currentSentence
+            # self.multifiles['hashFile'] = filename
+            self.multifiles['sentence'].append(self.currentSentence)
+            self.multifiles['hashFile'].append(filename)
             open(self.sentenceFilePair,'a+').write(self.currentSentence+"\t"+filename+"\n")
 
     def tempSureButtonClickedEvent(self):
@@ -377,8 +385,9 @@ class MyApp(QMainWindow):
 
     def preButtonClickedEvent(self):
 
-        # self.storeIndex = 1
-        self.storeIndex -= 1
+        if self.nextFlag == False :
+            self.storeIndex -= 1
+        currentSentence = self.currentSentence
         
         if self.storeIndex < 0 :
             QMessageBox.warning(self,"警告","没有句子了")
@@ -391,7 +400,12 @@ class MyApp(QMainWindow):
             sentence = self.sentenceStores[self.storeIndex]
             # sentence = ["agaerwgew","result/32c7dd219ea12a810e94aa221cb1e583c458e366a2e692ca92829f095c07459420e33d19.xml"]
             self.showPreviousSentence(sentence)
-        self.sentenceStores.append((self.currentSentence,self.currentSavedFile))
+        # self.sentenceStores.append((self.currentSentence,self.currentSavedFile))
+        if self.storeIndex == len(self.sentenceStores) - 1 :
+            if currentSentence not in [ s[0] for s in self.sentenceStores ] :
+                self.sentenceStores.append([currentSentence,self.currentSavedFile])
+                self.prevFlag == True
+        self.nextFlag = False
         
 
 
@@ -473,6 +487,7 @@ class MyApp(QMainWindow):
                     index += 1
 
         self.showSentence(sentence[0])
+        self.currentSentence = sentence[0]
 
         if sentence[1] is not None :
             results = extractXMLData(sentence[1])
@@ -498,18 +513,22 @@ class MyApp(QMainWindow):
     def nextButtonClickedEvent(self):
         
         def getNextSentence():
-            if self.currentSentence is not None :
-                self.sentenceStores.append((self.currentSentence,self.currentSavedFile))
-                self.currentSavedFile = None
-                self.storeIndex += 1
+            if self.storeIndex == len(self.sentenceStores) - 1 and self.currentSentence is not None and self.prevFlag == False :
+                if self.currentSentence not in [ s[0] for s in self.sentenceStores ] :
+                    self.sentenceStores.append([self.currentSentence,self.currentSavedFile])
+                    self.currentSavedFile = None
+                    self.storeIndex += 1
+                self.nextFlag = True
+
             sentence = self.sentence.__next__()   
             print("sentence ",sentence,"  currentsavedfile ",self.currentSavedFile)         
             self.currentSentence = self.wordsFilter(sentence)
             self.showSentence(self.currentSentence)
+            self.prevFlag == False
             self.resetWidget()
 
         try:
-            if self.storeIndex >= len(self.sentenceStores) :
+            if self.storeIndex == len(self.sentenceStores) - 1 :
                 # if self.currentSentence is not None :
                 #     self.sentenceStores.append((self.currentSentence,self.currentSavedFile))
                 #     self.currentSavedFile = None
@@ -520,11 +539,10 @@ class MyApp(QMainWindow):
                 # self.resetWidget()
                 getNextSentence()
             else:
-                self.storeIndex += 1
-                # print("current store index ",self.storeIndex)
-                # print("length of sentenceStores ",len(self.sentenceStores))
-                if self.storeIndex < len(self.sentenceStores) :
-                    self.showPreviousSentence(self.sentenceStores[self.storeIndex])
+                if self.storeIndex < len(self.sentenceStores) - 1 :
+                    self.resetWidget()
+                    self.showPreviousSentence(self.sentenceStores[self.storeIndex+1])
+                    self.storeIndex += 1      
                 else:
                     getNextSentence()
         except StopIteration :
