@@ -6,6 +6,7 @@ from xml.etree.ElementTree import Element, SubElement, ElementTree
 
 
 def searchVerb(verb):
+    verb = verb.lower()
     with open("./noreg.txt") as uf:
         urVerb = uf.readlines()
         urVerbTable = []
@@ -28,10 +29,13 @@ def searchVerb(verb):
         mayVerb = verb[:-3]
         result.add(mayVerb)
         result.add(mayVerb + 'e')
-        if(mayVerb[-2] == mayVerb[-1]):
+        print(mayVerb)
+        if(len(mayVerb)>1 and mayVerb[-2] == mayVerb[-1]):
             result.add(mayVerb[:-1])
         if(mayVerb[-1] == 'y'):
             result.add(mayVerb[:-1] + 'ie')
+        if(len(mayVerb)==1):
+            result.add(mayVerb) 
 # 不规则动词过去式
     for item in urVerbTable:
         if(verb in item):
